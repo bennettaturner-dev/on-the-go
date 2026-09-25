@@ -533,7 +533,7 @@
           '<ul class="steps">' + steps.map((x, i) => '<li class="' + (i < st || (st === 2 && i === 2) ? 'done' : i === st ? 'now' : '') + '">' + box + x + '</li>').join('') + '</ul>' +
           '<div class="code">Your order number<b>' + o.code + '</b></div>' +
           '<div class="actions"><a class="btn btn--line" href="https://maps.apple.com/?daddr=' + s.lat + ',' + s.lng + '&q=' + encodeURIComponent(s.name) + '" target="_blank" rel="noopener">Directions</a>' +
-          '<button class="btn" data-done="' + o.id + '">I got it</button></div></div>' +
+          '<button class="btn btn--dark" data-done="' + o.id + '">I got it</button></div></div>' +
           o.lines.map((l) => '<div class="line"><div class="grow"><div class="n">' + l.qty + ' × ' + esc(lineName(l)) + '</div>' + (lineMods(l) ? '<div class="m">' + esc(lineMods(l)) + '</div>' : '') + '</div><div class="pr">' + money(linePrice(l) * l.qty) + '</div></div>').join('') +
           '<div class="sum"><span class="tot">Total</span><span class="tot">' + money(o.total) + '</span></div>';
       }).join('') +

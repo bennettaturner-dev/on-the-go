@@ -42,10 +42,12 @@ line that busyness implies to the time it takes to make the items in the order.
 pin, list row, shop card, menu header and order status, plus a one-line description (`brand`
 and `tag` in `js/data.js`). The colors are this app's picks, not the shops' official branding.
 
-**Design rules.** Round shapes for things that float or identify a shop (logo, search bar,
-pins, shop logos, map buttons), gently rounded buttons and cards, and solid full-width lines
-between sections. Text is 16px or larger, tap targets are 48px or taller, and text contrast is
-at least 4.5:1 in light and dark mode.
+**Design rules.** Warm paper background, dark ink, and one bright orange accent reserved for
+the actions that matter (Order, Add, Place order, View order) and for live information like the
+ready time. Round shapes for things that float or identify a shop (logo, search bar, pins, shop
+logos, map buttons), gently rounded buttons and cards, and solid lines between sections. Text is
+16px or larger, tap targets are 48px or taller, and text contrast is at least 4.5:1 in light and
+dark mode.
 
 ## Structure
 
