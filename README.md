@@ -42,12 +42,20 @@ line that busyness implies to the time it takes to make the items in the order.
 pin, list row, shop card, menu header and order status, plus a one-line description (`brand`
 and `tag` in `js/data.js`). The colors are this app's picks, not the shops' official branding.
 
-**Design rules.** Warm paper background, dark ink, and one bright orange accent reserved for
-the actions that matter (Order, Add, Place order, View order) and for live information like the
-ready time. Round shapes for things that float or identify a shop (logo, search bar, pins, shop
-logos, map buttons), gently rounded buttons and cards, and solid lines between sections. Text is
-16px or larger, tap targets are 48px or taller, and text contrast is at least 4.5:1 in light and
-dark mode.
+**Three looks**, switchable at the bottom of the Orders tab: Florida Room (buttermilk, pine
+green, hibiscus coral), Boca Stucco (light resort pink, cocoa, palm green) and Gotham (charcoal
+and slate with crimson). Each colors the whole screen: ground, cards, section headers, top bar
+and tab bar. One accent per look is reserved for the next action. Pins are golf tees with the
+shop's photo in the ball. Text is 16px or larger and tap targets are 48px or taller.
+
+**Less to choose from.** A shop's menu opens with your usual order there (one tap to add), the
+drink of the day, three recommended items, anything seasonal, and only then the full menu.
+Shops you've ordered from get a check and a dashed ring on the map, and the map shows a one-tap
+"Your usual" bar for the nearest open shop you've been to. Until your first real order, the app
+shows a few sample past orders, labeled Sample, so these features have something to work with.
+
+**Your order** lists what you're getting with photos, assumes pickup at the counter, shows the
+ready time, and offers "Schedule for later" only if you want it.
 
 ## Structure
 
@@ -75,9 +83,8 @@ Photos come only from each shop's own online ordering page:
 | Long Story Short, Saquella, Mane, The Pots, Cafe Louis | none on their own pages | none |
 
 Delivery apps, Yelp and Instagram were skipped because those photos usually belong to the
-platform or to customers. The app links to the images where they are hosted; if one fails to
-load, the item shows without a picture. The Claude preview blocks outside images, so photos only
-appear when the app is served from its own site (for example GitHub Pages). The photos belong
+platform or to customers. Copies live in `img/<shop>/<item>` and `js/photos.js` lists them (rebuild it with
+`node tools/photos-manifest.js`), so they show everywhere, including the Claude preview. The photos belong
 to the shops, so ask each shop's permission before a public release.
 
 Menus for Mane Coffee and The Pots come from third-party listings, and Cafe Louis's website
