@@ -18,9 +18,10 @@ python3 -m http.server 8080
 1. The app has three tabs: **Promotions**, **Order** (the map, in the middle, where the app
    opens) and **Orders** (status and past orders). Order shows Boca Raton coffee shops with a
    search bar on top.
-2. Tap a shop, or search by shop name, street or drink ("cold brew", "croissant").
-3. The shop card shows today's hours, distance, how busy it usually is right now, and how
-   long an order will take. Tap **Order here**.
+2. Tap a shop in the list or a pin on the map, or search by shop name, street or drink.
+3. The shop's own page opens in place of the map: today's hours, distance, how busy it usually
+   is right now, how long an order will take, and the first few menu items. Tap **Order here**
+   for the full menu, or **Back to map**.
 4. That shop's own menu opens. Pick a drink, choose size, milk and extras, and add it.
 5. **Your order** shows the ready-time estimate, walk-in or curbside, and when to pick up.
 6. Place the order to see its status, ready time and order number.
@@ -40,8 +41,10 @@ line that busyness implies to the time it takes to make the items in the order.
 pin, list row, shop card, menu header and order status, plus a one-line description (`brand`
 and `tag` in `js/data.js`). The colors are this app's picks, not the shops' official branding.
 
-**Design rules.** No rounded corners. Text is 16px or larger, tap targets are 48px or taller,
-and text contrast is at least 4.5:1 in light and dark mode.
+**Design rules.** Round shapes for things that float or identify a shop (logo, search bar,
+pins, shop logos, map buttons), gently rounded buttons and cards, and solid full-width lines
+between sections. Text is 16px or larger, tap targets are 48px or taller, and text contrast is
+at least 4.5:1 in light and dark mode.
 
 ## Structure
 

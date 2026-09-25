@@ -14,23 +14,32 @@
 <div class="app" id="app">
 
   <section class="screen has-tabs is-active" data-screen="map" aria-label="Order">
-    <div class="searchbar">
-      <span class="logo" id="logo" aria-hidden="true"></span>
-      <label class="search"><span id="searchIcon" aria-hidden="true"></span>
-        <input id="q" type="search" placeholder="Search shops or drinks" autocomplete="off" enterkeyhint="search" aria-label="Search coffee shops or drinks">
-        <button class="clear" id="qClear" type="button" hidden>Clear</button>
-      </label>
-    </div>
     <div class="map-area">
       <svg class="map-svg" id="mapSvg" viewBox="0 0 1300 1300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of coffee shops in Boca Raton"></svg>
-      <button class="sq locate" id="locate" aria-label="Show my location"></button>
-      <div class="zoom"><button class="sq" id="zoomIn" aria-label="Zoom in"></button><button class="sq" id="zoomOut" aria-label="Zoom out"></button></div>
+      <div class="float-top">
+        <span class="logo" id="logo" aria-hidden="true"></span>
+        <label class="search"><span id="searchIcon" aria-hidden="true"></span>
+          <input id="q" type="search" placeholder="Search shops or drinks" autocomplete="off" enterkeyhint="search" aria-label="Search coffee shops or drinks">
+          <button class="clear" id="qClear" type="button" hidden>Clear</button>
+        </label>
+      </div>
+      <div class="map-btns">
+        <button class="round" id="locate" aria-label="Show my location"></button>
+        <button class="round" id="zoomIn" aria-label="Zoom in"></button>
+        <button class="round" id="zoomOut" aria-label="Zoom out"></button>
+      </div>
     </div>
     <div class="sheet" id="sheet"><div class="sheet-body" id="sheetBody"></div></div>
   </section>
 
+  <section class="screen has-tabs" data-screen="shop" aria-label="Coffee shop">
+    <div class="nav"><button class="back" data-back><span class="bk"></span>Back to map</button></div>
+    <div class="scroll" id="shopBody"></div>
+    <div class="bottom-bar" id="shopBar" hidden></div>
+  </section>
+
   <section class="screen" data-screen="menu" aria-label="Menu">
-    <div class="nav"><button class="back" data-back><span class="bk"></span>Shops</button><h1 id="menuTitle"></h1></div>
+    <div class="nav"><button class="back" data-go="shop"><span class="bk"></span>Back</button><h1 id="menuTitle"></h1></div>
     <div class="scroll" id="menuBody"></div>
     <div class="bottom-bar" id="cartBar" hidden></div>
   </section>

@@ -131,9 +131,10 @@
   function go(screen) {
     state.screen = screen;
     $$('.screen').forEach((el) => el.classList.toggle('is-active', el.dataset.screen === screen));
-    $('#tabbar').hidden = !['map', 'specials', 'orders'].includes(screen);
-    $$('.tab').forEach((t) => { t.classList.toggle('is-active', t.dataset.go === screen); t.setAttribute('aria-current', t.dataset.go === screen ? 'page' : 'false'); });
-    ({ map: renderMap, menu: renderMenu, cart: renderCart, specials: renderSpecials, orders: renderOrders })[screen]();
+    $('#tabbar').hidden = !['map', 'shop', 'specials', 'orders'].includes(screen);
+    const tab = screen === 'shop' ? 'map' : screen;
+    $$('.tab').forEach((t) => { t.classList.toggle('is-active', t.dataset.go === tab); t.setAttribute('aria-current', t.dataset.go === tab ? 'page' : 'false'); });
+    ({ map: renderMap, shop: renderShop, menu: renderMenu, cart: renderCart, specials: renderSpecials, orders: renderOrders })[screen]();
     save();
   }
 
@@ -280,14 +281,14 @@
       if (isFeatureDay(s)) {
         const name = C[s.signature].name + '  ' + money(priceAt(s, s.signature));
         const w = Math.max(96, Math.round(name.length * 7 + 16));
-        deal = '<g class="pin-deal" transform="translate(' + (-w / 2) + ' -60)"><rect width="' + w + '" height="36"/><path d="M' + (w / 2 - 6) + ' 36h12l-6 7Z" fill="#000"/>' +
+        deal = '<g class="pin-deal" transform="translate(' + (-w / 2) + ' -62)"><rect width="' + w + '" height="36" rx="8"/><path d="M' + (w / 2 - 6) + ' 36h12l-6 7Z" fill="#000"/>' +
           '<text class="k" x="8" y="14">TODAY ONLY</text><text x="8" y="29">' + esc(name) + '</text></g>';
       }
       return '<g class="pin' + (s.id === state.storeId ? ' is-selected' : '') + '" data-id="' + s.id + '" data-x="' + s.x + '" data-y="' + s.y + '">' +
         deal +
-        '<rect class="pin-box" x="-15" y="-15" width="30" height="30" fill="' + s.brand.bg + '"/>' +
+        '<circle class="pin-box" r="17" fill="' + s.brand.bg + '"/>' +
         '<text class="pin-mono" y="' + (s.brand.mono.length > 2 ? 4 : 5) + '" text-anchor="middle" fill="' + s.brand.fg + '" font-size="' + (s.brand.mono.length > 2 ? 10 : 13) + '">' + esc(s.brand.mono) + '</text>' +
-        '<text class="pin-name" y="30" text-anchor="middle">' + esc(s.name) + '</text></g>';
+        '<text class="pin-name" y="32" text-anchor="middle">' + esc(s.name) + '</text></g>';
     }).join('');
     /* drink-of-the-day pins draw on top */
     $$('#pins .pin-deal').forEach((d) => d.parentNode.parentNode.appendChild(d.parentNode));
@@ -304,49 +305,58 @@
   function renderMap() {
     buildMap();
     renderPins();
-    const s = storeById(state.storeId);
-    $('#sheet').classList.toggle('is-tall', !!s);
     $('#qClear').hidden = !state.query;
-    const body = $('#sheetBody');
-    if (s) {
-      const now = new Date(), open = isOpenAt(s, now), e = eta(s, []);
-      const other = state.bag.length && state.orderStoreId !== s.id ? storeById(state.orderStoreId) : null;
-      body.innerHTML = '<button class="link backlink" data-deselect>' + I.back + 'All shops</button>' +
-        '<div class="band" ' + band(s) + '>' + tile(s, true) + '<div class="grow"><h2>' + esc(s.name) + '</h2><p>' + esc(s.tag) + '</p></div></div>' +
-        '<div class="card"><p class="addr">' + esc(s.address) + '</p>' +
-        '<div class="facts">' +
-          '<div><span>Hours today</span><span>' + hoursLine(s) + '</span></div>' +
-          '<div><span>Distance</span><span>' + miles(s) + '</span></div>' +
-          (open ? '<div><span>Right now</span><span>' + busyWord(e.busy) + '</span></div><div><span>Order ready in</span><span>' + etaText(e) + '</span></div>' : '') +
-        '</div>' +
-        (isFeatureDay(s) ? todayCard(s, 'data-item="' + s.signature + '" data-item-store="' + s.id + '"') : '') +
-        '<div class="actions"><button class="btn" data-order="' + s.id + '"' + (open ? '' : ' disabled') + '>' + (open ? 'Order here' : 'Closed now') + '</button>' +
-        '<a class="btn btn--line" href="https://maps.apple.com/?daddr=' + s.lat + ',' + s.lng + '&q=' + encodeURIComponent(s.name) + '" target="_blank" rel="noopener">Directions</a></div>' +
-        (other ? '<p class="warn">You have items from ' + esc(other.name) + ' in your order. Ordering here will remove them.</p>' : '') +
-        '</div>';
-    } else {
-      const list = matches();
-      body.innerHTML = '<div class="head">' + (state.query ? list.length + ' result' + (list.length === 1 ? '' : 's') : 'Coffee shops near you') + '</div>' +
-        (list.length ? list.map((st) => '<button class="row" data-select="' + st.id + '">' + tile(st) + '<div class="grow"><div class="t">' + esc(st.name) + '</div>' +
-          '<div class="s">' + esc(st.tag) + '</div><div class="s">' + hoursLine(st) + ' · ' + miles(st) + '</div>' +
-          (isFeatureDay(st) ? '<span class="pick">Today: ' + esc(C[st.signature].name) + '</span>' : '') + '</div>' +
-          '<span class="go">' + I.go + '</span></button>').join('')
-          : '<p class="note">No shops match “' + esc(state.query) + '”. Try a shop name or a drink like “latte”.</p>');
-    }
+    const list = matches();
+    $('#sheetBody').innerHTML = '<div class="head">' + (state.query ? list.length + ' result' + (list.length === 1 ? '' : 's') : 'Coffee shops near you') + '</div>' +
+      (list.length ? list.map((st) => '<button class="row" data-select="' + st.id + '">' + tile(st) + '<div class="grow"><div class="t">' + esc(st.name) + '</div>' +
+        '<div class="s">' + esc(st.tag) + '</div><div class="s">' + hoursLine(st) + ' · ' + miles(st) + '</div>' +
+        (isFeatureDay(st) ? '<span class="pick">Today: ' + esc(C[st.signature].name) + '</span>' : '') + '</div>' +
+        '<span class="go">' + I.go + '</span></button>').join('')
+        : '<p class="note">No shops match “' + esc(state.query) + '”. Try a shop name or a drink like “latte”.</p>');
+  }
+
+  /* ---------- a shop's own page (the map steps aside) ---------- */
+  function renderShop() {
+    const s = storeById(state.storeId);
+    if (!s) return go('map');
+    const now = new Date(), open = isOpenAt(s, now), e = eta(s, []);
+    const other = state.bag.length && state.orderStoreId !== s.id ? storeById(state.orderStoreId) : null;
+    $('#shopBody').innerHTML = '<div class="shop-body">' +
+      '<div class="band" ' + band(s) + '>' + tile(s, true) + '<div class="grow"><h2>' + esc(s.name) + '</h2><p>' + esc(s.tag) + '</p></div></div>' +
+      '<div class="shop-info"><p class="about">' + esc(s.about) + '</p>' +
+      '<div class="facts">' +
+        '<div><span>Address</span><span>' + esc(s.address) + '</span></div>' +
+        '<div><span>Hours today</span><span>' + hoursLine(s) + '</span></div>' +
+        '<div><span>Distance</span><span>' + miles(s) + '</span></div>' +
+        (open ? '<div><span>Right now</span><span>' + busyWord(e.busy) + '</span></div><div><span>Order ready in</span><span>' + etaText(e) + '</span></div>' : '') +
+      '</div></div>' +
+      (isFeatureDay(s) ? todayCard(s, 'data-item="' + s.signature + '" data-item-store="' + s.id + '"') : '') +
+      '<div class="shop-actions"><button class="btn" data-order="' + s.id + '"' + (open ? '' : ' disabled') + '>' + (open ? 'Order here' : 'Closed now') + '</button>' +
+      '<a class="btn btn--line" href="https://maps.apple.com/?daddr=' + s.lat + ',' + s.lng + '&q=' + encodeURIComponent(s.name) + '" target="_blank" rel="noopener">Directions</a></div>' +
+      (other ? '<p class="warn">You have items from ' + esc(other.name) + ' in your order. Ordering here will remove them.</p>' : '') +
+      '<div class="head">On the menu</div>' +
+      s.menu.slice(0, 6).map((m) => itemRow(s, m[0], m[1])).join('') +
+      '<div class="row"><button class="link" data-order="' + s.id + '"' + (open ? '' : ' disabled') + '>See the full menu (' + s.menu.length + ' items)</button></div>' +
+      '</div>';
+    showBar();
   }
 
   function selectStore(id) {
     state.storeId = id;
-    save();
-    renderMap();
-    const s = storeById(id);
-    centerOn(s.x, s.y, 0.4);
-    $('#sheetBody').scrollTop = 0;
+    go('shop');
+    $('#shopBody').scrollTop = 0;
+  }
+
+  function backToMap() {
+    const s = storeById(state.storeId);
+    go('map');
+    if (s) centerOn(s.x, s.y, 0.5);
   }
 
   function startOrder(id) {
     if (state.bag.length && state.orderStoreId !== id) state.bag = [];
     state.orderStoreId = id;
+    state.storeId = id;
     menuCat = null;
     go('menu');
     $('#menuBody').scrollTop = 0;
@@ -439,7 +449,15 @@
     if (same) same.qty += draft.qty; else state.bag.push(Object.assign({ id: uid(), key }, draft));
     save();
     closeItem();
-    renderMenu();
+    if (state.screen === 'shop') { renderShop(); showBar(); } else renderMenu();
+  }
+
+  /* the View order bar also shows on a shop page once something is in the order */
+  function showBar() {
+    const bar = $('#shopBar');
+    if (!bar) return;
+    bar.hidden = !state.bag.length;
+    if (state.bag.length) bar.innerHTML = '<button class="btn btn--split" data-go="cart"><span>View order (' + bagCount() + ')</span><span>' + money(totals().sub) + '</span></button>';
   }
 
   /* ---------- your order ---------- */
@@ -504,7 +522,7 @@
   function renderSpecials() {
     const now = new Date(), today = now.getDay();
     const byDay = (d) => sorted().filter((s) => s.featureDay === d);
-    const row = (s, live) => '<button class="row" ' + (live ? 'data-special="' + s.id + '"' : 'data-select="' + s.id + '" data-to-map') + '>' + tile(s) +
+    const row = (s, live) => '<button class="row" ' + (live ? 'data-special="' + s.id + '"' : 'data-select="' + s.id + '"') + '>' + tile(s) +
       '<div class="grow"><div class="t">' + esc(C[s.signature].name) + '</div><div class="s">' + esc(s.name) + ' · ' + miles(s) + '</div>' +
       (live && !isOpenAt(s, now) ? '<div class="s">' + hoursLine(s) + '</div>' : '') + '</div>' +
       '<span class="end"><b style="color:var(--text)">' + money(priceAt(s, s.signature)) + '</b></span></button>';
@@ -583,17 +601,16 @@
     }
     if (d.special) {
       const s = storeById(d.special);
-      if (!isOpenAt(s, new Date())) { state.storeId = s.id; go('map'); return selectStore(s.id); }
+      if (!isOpenAt(s, new Date())) return selectStore(s.id);
       startOrder(s.id);
       return openItem(s.signature);
     }
-    if (d.toMap !== undefined) { go('map'); return selectStore(d.select); }
     if (d.go) return go(d.go);
-    if (d.back !== undefined) return go('map');
+    if (d.back !== undefined) return backToMap();
     if (d.select) return selectStore(d.select);
-    if (d.deselect !== undefined) { state.storeId = null; save(); return renderMap(); }
     if (d.order) return startOrder(d.order);
     if (d.item) {
+      if (state.screen === 'shop' && state.orderStoreId !== state.storeId) { if (state.bag.length) state.bag = []; state.orderStoreId = state.storeId; }
       if (d.itemStore && d.itemStore !== state.orderStoreId) { if (state.bag.length) state.bag = []; state.orderStoreId = d.itemStore; }
       return openItem(d.item);
     }
@@ -613,7 +630,7 @@
     }
     if (d.mode) { state.pickupMode = d.mode; save(); return renderCart(); }
     if (d.time) { state.pickupIn = Number(d.time); save(); return renderCart(); }
-    if (d.changeStore !== undefined) { state.storeId = state.orderStoreId; return go('map'); }
+    if (d.changeStore !== undefined) return go('map');
     if (d.place !== undefined) return placeOrder();
     if (d.done) { state.orders.find((o) => o.id === d.done).done = true; save(); return renderOrders(); }
     if (d.reorder) return reorder(d.reorder);
@@ -638,5 +655,5 @@
   $('#zoomOut').innerHTML = I.minus;
   $$('.bk').forEach((b) => { b.outerHTML = I.back; });
   $$('.tab').forEach((t) => { t.innerHTML = I[t.dataset.icon] + '<span>' + t.textContent.trim() + '</span>'; });
-  go(['map', 'menu', 'cart', 'specials', 'orders'].includes(state.screen) ? state.screen : 'map');
+  go(['map', 'shop', 'menu', 'cart', 'specials', 'orders'].includes(state.screen) ? state.screen : 'map');
 })();
