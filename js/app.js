@@ -131,10 +131,10 @@
   function go(screen) {
     state.screen = screen;
     $$('.screen').forEach((el) => el.classList.toggle('is-active', el.dataset.screen === screen));
-    $('#tabbar').hidden = !['map', 'shop', 'specials', 'orders'].includes(screen);
-    const tab = screen === 'shop' ? 'map' : screen;
+    $('#tabbar').hidden = !['map', 'specials', 'orders'].includes(screen);
+    const tab = screen;
     $$('.tab').forEach((t) => { t.classList.toggle('is-active', t.dataset.go === tab); t.setAttribute('aria-current', t.dataset.go === tab ? 'page' : 'false'); });
-    ({ map: renderMap, shop: renderShop, menu: renderMenu, cart: renderCart, specials: renderSpecials, orders: renderOrders })[screen]();
+    ({ map: renderMap, menu: renderMenu, cart: renderCart, specials: renderSpecials, orders: renderOrders })[screen]();
     save();
   }
 
@@ -298,10 +298,6 @@
   const tile = (s, big) => '<span class="tile' + (big ? ' tile--big' : '') + '" style="background:' + s.brand.bg + ';color:' + s.brand.fg + '" aria-hidden="true">' + esc(s.brand.mono) + '</span>';
   const band = (s) => 'style="background:' + s.brand.bg + ';color:' + s.brand.fg + '"';
 
-  function todayCard(s, attrs) {
-    return '<button class="today" ' + attrs + '><div class="grow"><div class="k">' + DAYS[s.featureDay] + ' drink of the day</div><div class="n">' + esc(C[s.signature].name) + '</div></div><span class="p">' + money(priceAt(s, s.signature)) + '</span></button>';
-  }
-
   function renderMap() {
     buildMap();
     renderPins();
@@ -315,36 +311,13 @@
         : '<p class="note">No shops match “' + esc(state.query) + '”. Try a shop name or a drink like “latte”.</p>');
   }
 
-  /* ---------- a shop's own page (the map steps aside) ---------- */
-  function renderShop() {
-    const s = storeById(state.storeId);
-    if (!s) return go('map');
-    const now = new Date(), open = isOpenAt(s, now), e = eta(s, []);
-    const other = state.bag.length && state.orderStoreId !== s.id ? storeById(state.orderStoreId) : null;
-    $('#shopBody').innerHTML = '<div class="shop-body">' +
-      '<div class="band" ' + band(s) + '>' + tile(s, true) + '<div class="grow"><h2>' + esc(s.name) + '</h2><p>' + esc(s.tag) + '</p></div></div>' +
-      '<div class="shop-info"><p class="about">' + esc(s.about) + '</p>' +
-      '<div class="facts">' +
-        '<div><span>Address</span><span>' + esc(s.address) + '</span></div>' +
-        '<div><span>Hours today</span><span>' + hoursLine(s) + '</span></div>' +
-        '<div><span>Distance</span><span>' + miles(s) + '</span></div>' +
-        (open ? '<div><span>Right now</span><span>' + busyWord(e.busy) + '</span></div><div><span>Order ready in</span><span>' + etaText(e) + '</span></div>' : '') +
-      '</div></div>' +
-      (isFeatureDay(s) ? todayCard(s, 'data-item="' + s.signature + '" data-item-store="' + s.id + '"') : '') +
-      '<div class="shop-actions"><button class="btn" data-order="' + s.id + '"' + (open ? '' : ' disabled') + '>' + (open ? 'Order here' : 'Closed now') + '</button>' +
-      '<a class="btn btn--line" href="https://maps.apple.com/?daddr=' + s.lat + ',' + s.lng + '&q=' + encodeURIComponent(s.name) + '" target="_blank" rel="noopener">Directions</a></div>' +
-      (other ? '<p class="warn">You have items from ' + esc(other.name) + ' in your order. Ordering here will remove them.</p>' : '') +
-      '<div class="head">On the menu</div>' +
-      s.menu.slice(0, 6).map((m) => itemRow(s, m[0], m[1])).join('') +
-      '<div class="row"><button class="link" data-order="' + s.id + '"' + (open ? '' : ' disabled') + '>See the full menu (' + s.menu.length + ' items)</button></div>' +
-      '</div>';
-    showBar();
-  }
-
+  /* Tapping a shop opens its menu. storeId is the shop you're looking at; orderStoreId is the
+     shop your order is from. Browsing never clears an order; adding from another shop does. */
   function selectStore(id) {
     state.storeId = id;
-    go('shop');
-    $('#shopBody').scrollTop = 0;
+    menuCat = null;
+    go('menu');
+    $('#menuBody').scrollTop = 0;
   }
 
   function backToMap() {
@@ -353,53 +326,53 @@
     if (s) centerOn(s.x, s.y, 0.5);
   }
 
-  function startOrder(id) {
-    if (state.bag.length && state.orderStoreId !== id) state.bag = [];
-    state.orderStoreId = id;
-    state.storeId = id;
-    menuCat = null;
-    go('menu');
-    $('#menuBody').scrollTop = 0;
-  }
-
   /* ---------- menu ---------- */
   let menuCat = null;
   const bagCount = () => state.bag.reduce((n, l) => n + l.qty, 0);
 
   function itemRow(s, id, price) {
     const img = photo(s.id, id);
-    const n = state.bag.filter((l) => l.itemId === id).reduce((a, l) => a + l.qty, 0);
-    return '<button class="item' + (isFeatureDay(s) && id === s.signature ? ' is-today' : '') + '" data-item="' + id + '"><div class="grow">' +
-      '<div class="n">' + esc(C[id].name) + '</div><div class="d">' + esc(C[id].desc) + '</div><div class="p">' + money(price) + '</div>' +
+    const n = state.orderStoreId === s.id ? state.bag.filter((l) => l.itemId === id).reduce((a, l) => a + l.qty, 0) : 0;
+    return '<button class="item" data-item="' + id + '"><div class="grow">' +
+      '<div class="n">' + esc(C[id].name) + (isFeatureDay(s) && id === s.signature ? ' <span class="today-pill">Today</span>' : '') + '</div><div class="d">' + esc(C[id].desc) + '</div><div class="p">' + money(price) + '</div>' +
       (n ? '<span class="qty">' + n + ' in your order</span>' : '') + '</div>' +
       (img ? '<img class="thumb" src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : '') + '</button>';
   }
 
   function renderMenu() {
-    const s = storeById(state.orderStoreId);
+    const s = storeById(state.storeId);
     if (!s) return go('map');
     const cats = D.categories.filter((c) => s.menu.some((m) => C[m[0]].cat === c.id));
     if (!menuCat || !cats.find((c) => c.id === menuCat)) menuCat = cats[0].id;
-    const now = new Date(), e = eta(s, state.bag);
+    const now = new Date(), open = isOpenAt(s, now);
+    const mine = state.orderStoreId === s.id ? state.bag : [];
+    const e = eta(s, mine);
+    const other = state.bag.length && state.orderStoreId !== s.id ? storeById(state.orderStoreId) : null;
     $('#menuTitle').textContent = s.name;
     $('#menuBody').innerHTML =
       '<div class="band" ' + band(s) + '>' + tile(s, true) + '<div class="grow"><h2>' + esc(s.name) + '</h2><p>' + esc(s.tag) + '</p></div></div>' +
-      '<div class="menu-top"><p>' + (isOpenAt(s, now) ? '<span class="ready">Ready in ' + etaText(e) + '</span> · ' + busyWord(e.busy) + ' now' : hoursLine(s)) + '</p>' +
-        '<p>' + esc(s.address) + ' · ' + miles(s) + '</p></div>' +
-      (isFeatureDay(s) ? '<div class="menu-group"><div class="head">Drink of the day</div>' + itemRow(s, s.signature, priceAt(s, s.signature)) + '</div>' : '') +
+      '<div class="menu-top">' +
+        '<div class="chips">' +
+          (open ? '<span class="chip chip--dark">Ready in ' + etaText(e) + '</span><span class="chip">' + busyWord(e.busy) + ' now</span>' : '') +
+          '<span class="chip">' + hoursLine(s) + '</span><span class="chip">' + miles(s) + '</span>' +
+        '</div>' +
+        '<p class="addr-line">' + esc(s.address) + ' · <a href="https://maps.apple.com/?daddr=' + s.lat + ',' + s.lng + '&q=' + encodeURIComponent(s.name) + '" target="_blank" rel="noopener">Directions</a></p>' +
+        (other ? '<p class="warn-line">Your order has items from ' + esc(other.name) + '. Adding something here starts a new order.</p>' : '') +
+      '</div>' +
+      (isFeatureDay(s) ? '<div class="feature"><div class="feature-k">' + DAYS[s.featureDay] + ' drink of the day</div>' + itemRow(s, s.signature, priceAt(s, s.signature)) + '</div>' : '') +
       '<div class="cats" role="tablist">' + cats.map((c) => '<button class="cat' + (c.id === menuCat ? ' is-on' : '') + '" data-cat="' + c.id + '" role="tab" aria-selected="' + (c.id === menuCat) + '">' + c.name + '</button>').join('') + '</div>' +
       cats.map((c) => '<div class="menu-group" id="cat-' + c.id + '"><div class="head">' + c.name + '</div>' +
         s.menu.filter((m) => C[m[0]].cat === c.id).map((m) => itemRow(s, m[0], m[1])).join('') + '</div>').join('') +
       '<p class="note">Prices may be different at the shop.</p>';
     const bar = $('#cartBar');
     bar.hidden = !state.bag.length;
-    if (state.bag.length) bar.innerHTML = '<button class="btn btn--split" data-go="cart"><span>View order (' + bagCount() + ')</span><span>' + money(totals().sub) + '</span></button>';
+    if (state.bag.length) bar.innerHTML = '<button class="btn btn--split" data-go="cart"><span>View order (' + bagCount() + ')' + (other ? ' · ' + esc(other.name) : '') + '</span><span>' + money(totals().sub) + '</span></button>';
   }
 
   /* ---------- item screen ---------- */
   let draft = null;
   function openItem(id) {
-    const s = storeById(state.orderStoreId), def = C[id];
+    const s = storeById(state.storeId), def = C[id];
     draft = { itemId: id, storeId: s.id, base: priceAt(s, id), size: def.sized ? 'reg' : null, milk: def.milk ? 'whole' : null, shots: 0, syrups: [], warm: false, qty: 1 };
     renderItem();
     $('#itemModal').classList.add('is-open');
@@ -439,25 +412,21 @@
         (def.coffee ? '<div class="choice"><span>Extra shot <span style="color:var(--text-2)">+' + money(s.shot) + ' each</span></span>' + stepper('data-shots', draft.shots, 0, 'shots') + '</div>' : '') +
         D.syrups.map((y) => choice(draft.syrups.includes(y.id), 'data-syrup="' + y.id + '"', y.name + ' syrup', '+' + money(s.syrup), 'checkbox')).join('') : '') +
       (def.warm ? head('Warm it up?', 'Optional') + choice(draft.warm, 'data-warm', 'Yes, warm it', 'Free', 'checkbox') : '');
+    const open = isOpenAt(s, new Date());
     $('#modalFoot').innerHTML = stepper('data-qty', draft.qty, 1, 'quantity') +
-      '<button class="btn btn--split" data-add><span>Add</span><span>' + money(linePrice(draft) * draft.qty) + '</span></button>';
+      (open ? '<button class="btn btn--split" data-add><span>Add</span><span>' + money(linePrice(draft) * draft.qty) + '</span></button>'
+        : '<button class="btn" disabled>Closed now</button>');
   }
 
   function addToBag() {
+    if (state.bag.length && state.orderStoreId !== draft.storeId) state.bag = [];   /* one shop per order */
+    state.orderStoreId = draft.storeId;
     const key = JSON.stringify([draft.itemId, draft.size, draft.milk, draft.shots, draft.syrups.slice().sort(), draft.warm]);
     const same = state.bag.find((l) => l.key === key);
     if (same) same.qty += draft.qty; else state.bag.push(Object.assign({ id: uid(), key }, draft));
     save();
     closeItem();
-    if (state.screen === 'shop') { renderShop(); showBar(); } else renderMenu();
-  }
-
-  /* the View order bar also shows on a shop page once something is in the order */
-  function showBar() {
-    const bar = $('#shopBar');
-    if (!bar) return;
-    bar.hidden = !state.bag.length;
-    if (state.bag.length) bar.innerHTML = '<button class="btn btn--split" data-go="cart"><span>View order (' + bagCount() + ')</span><span>' + money(totals().sub) + '</span></button>';
+    renderMenu();
   }
 
   /* ---------- your order ---------- */
@@ -577,7 +546,7 @@
 
   function reorder(id) {
     const o = state.orders.find((x) => x.id === id);
-    state.orderStoreId = o.storeId;
+    state.orderStoreId = state.storeId = o.storeId;
     state.bag = o.lines.map((l) => Object.assign({}, l, { id: uid() }));
     go('cart');
   }
@@ -601,19 +570,14 @@
     }
     if (d.special) {
       const s = storeById(d.special);
-      if (!isOpenAt(s, new Date())) return selectStore(s.id);
-      startOrder(s.id);
-      return openItem(s.signature);
+      selectStore(s.id);
+      return isOpenAt(s, new Date()) ? openItem(s.signature) : null;
     }
+    if (d.go === 'menu' && state.orderStoreId) state.storeId = state.orderStoreId;
     if (d.go) return go(d.go);
     if (d.back !== undefined) return backToMap();
     if (d.select) return selectStore(d.select);
-    if (d.order) return startOrder(d.order);
-    if (d.item) {
-      if (state.screen === 'shop' && state.orderStoreId !== state.storeId) { if (state.bag.length) state.bag = []; state.orderStoreId = state.storeId; }
-      if (d.itemStore && d.itemStore !== state.orderStoreId) { if (state.bag.length) state.bag = []; state.orderStoreId = d.itemStore; }
-      return openItem(d.item);
-    }
+    if (d.item) return openItem(d.item);
     if (d.cat) {
       menuCat = d.cat;
       $$('.cat').forEach((c) => { c.classList.toggle('is-on', c.dataset.cat === d.cat); c.setAttribute('aria-selected', c.dataset.cat === d.cat); });
@@ -655,5 +619,5 @@
   $('#zoomOut').innerHTML = I.minus;
   $$('.bk').forEach((b) => { b.outerHTML = I.back; });
   $$('.tab').forEach((t) => { t.innerHTML = I[t.dataset.icon] + '<span>' + t.textContent.trim() + '</span>'; });
-  go(['map', 'shop', 'menu', 'cart', 'specials', 'orders'].includes(state.screen) ? state.screen : 'map');
+  go(['map', 'menu', 'cart', 'specials', 'orders'].includes(state.screen) ? state.screen : 'map');
 })();
