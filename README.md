@@ -17,13 +17,12 @@ python3 -m http.server 8080
 
 1. The app opens on a map of Boca Raton coffee shops.
 2. Tap a pin, or search by shop name, street or drink ("cold brew", "Mizner", "croissant").
-3. The shop card shows the wait, hours, distance and what the shop is known for. Tap **Order here**.
+3. The shop card shows hours, distance and pickup time. Tap **Order**.
 4. That shop's own menu opens. Pick a drink, choose size, milk and extras, and add it to your bag.
-5. The bag is a printed-style receipt with pickup time and counter or curbside.
-6. Place the order to get a pickup ticket with a code and live status.
-7. Every drink earns a punch. Ten punches and the next drink is free, at any shop in the app.
+5. Your Order lets you pick in store or curbside and a pickup time.
+6. Place the order to see its status and order number.
 
-A bag belongs to one shop at a time, the same as a real order.
+An order belongs to one shop at a time.
 
 ## Structure
 
@@ -32,10 +31,10 @@ index.html      markup shell
 css/styles.css  design tokens (light + dark), layout, components
 js/mapdata.js   Boca Raton base map: coastline, Intracoastal, parks, roads, labels
 js/data.js      shops, each shop's menu and prices, sizes, milks, syrups
-js/app.js       state, map pan/zoom, shop sheet, menu, bag, orders, punch card
+js/app.js       state, map pan/pinch/zoom, shop sheet, menu, order, status
 ```
 
-State (bag, orders, saved shops, punches) persists in `localStorage`.
+The app uses the phone's system font and loads nothing from other sites. State persists in `localStorage`.
 
 ## About the data
 
