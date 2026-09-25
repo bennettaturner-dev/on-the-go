@@ -19,10 +19,11 @@ python3 -m http.server 8080
    opens) and **Orders** (status and past orders). Order shows Boca Raton coffee shops with a
    search bar on top.
 2. Tap a shop in the list or a pin on the map, or search by shop name, street or drink.
-3. The shop's own page opens in place of the map: today's hours, distance, how busy it usually
-   is right now, how long an order will take, and the first few menu items. Tap **Order here**
-   for the full menu, or **Back to map**.
-4. That shop's own menu opens. Pick a drink, choose size, milk and extras, and add it.
+3. That shop's menu opens in place of the map. The top shows how long an order will take, how
+   busy it usually is right now, today's hours, distance, address and directions.
+4. Pick a drink, choose size, milk and extras, and add it. **Back to map** returns to the map.
+   You can browse any shop without losing your order; adding from a different shop starts a new
+   one, and the menu says so before you do.
 5. **Your order** shows the ready-time estimate, walk-in or curbside, and when to pick up.
 6. Place the order to see its status, ready time and order number.
 

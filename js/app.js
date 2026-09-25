@@ -366,7 +366,7 @@
       '<p class="note">Prices may be different at the shop.</p>';
     const bar = $('#cartBar');
     bar.hidden = !state.bag.length;
-    if (state.bag.length) bar.innerHTML = '<button class="btn btn--split" data-go="cart"><span>View order (' + bagCount() + ')' + (other ? ' · ' + esc(other.name) : '') + '</span><span>' + money(totals().sub) + '</span></button>';
+    if (state.bag.length) bar.innerHTML = '<button class="btn btn--split" data-go="cart"><span>View order (' + bagCount() + ')</span><span>' + money(totals().sub) + '</span></button>';
   }
 
   /* ---------- item screen ---------- */
