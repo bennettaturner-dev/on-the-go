@@ -45,7 +45,7 @@ pin, list row, shop card, menu header and order status, plus a one-line descript
 and `tag` in `js/data.js`). The colors are this app's picks, not the shops' official branding.
 
 **Three looks**, switchable at the bottom of the Orders tab: Florida Room (buttermilk, pine
-green, hibiscus coral), Boca Stucco (light resort pink, cocoa, palm green) and Gotham (charcoal
+green, hibiscus coral), Boca Stucco (neutral light gray for now, cocoa, palm green) and Gotham (charcoal
 and slate with crimson). Each colors the whole screen: ground, cards, section headers, top bar
 and tab bar. One accent per look is reserved for the next action. Pins are golf tees with the
 shop's photo in the ball. Text is 16px or larger and tap targets are 48px or taller.

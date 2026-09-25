@@ -6,19 +6,19 @@
    Round for anything that floats or identifies a shop (logo, search, pins, tiles); 14px on
    controls and cards. Text 16px+, taps 44px+, contrast 4.5:1+. */
 
-/* Boca Stucco (default): shell pink ground, espresso ink, palm green for actions. */
+/* Boca Stucco (default): neutral ground (pink tint off for now), espresso ink, palm green for actions. */
 .app, .app[data-look="stucco"] {
-  --bg: #F6E4DD; --surface: #FFFFFF; --soft: #F0D0C6; --tint: #DDEBE0; --deep: #2A1A16;
-  --ink: #2A1A16; --ink-2: #66504A; --ink-3: #927B75; --line: #E8CBC1;
+  --bg: #F5F5F3; --surface: #FFFFFF; --soft: #E6E6E3; --tint: #DDEBE0; --deep: #221F1D;
+  --ink: #221F1D; --ink-2: #55524F; --ink-3: #817D79; --line: #E0E0DC;
   --accent: #157A4F; --on-accent: #FFFFFF; --accent-edge: #0E5A39;
   --hot: #157A4F; --on-hot: #FFFFFF; --hot-edge: #0E5A39;
-  --nav-bg: #2A1A16; --nav-fg: #F6E4DD;
-  --tab-bg: #FFFFFF; --tab-fg: #927B75; --tab-on: #157A4F; --tab-line: #E8CBC1;
-  --link: #157A4F; --ok: #157A4F; --closed: #B3261E; --sun: #FFD166; --on-sun: #2A1A16;
-  --map-land: #F4E2DA; --map-block: #EBD0C6; --map-water: #7FB4DA; --map-park: #B9D39F; --map-campus: #EDD8D0;
-  --map-road: #FFF8F5; --map-road-minor: #F8EAE4; --map-hwy: #F0C97C; --map-casing: #DDB9AD; --map-label: #7A625C; --map-water-label: #25587F; --map-halo: #F4E2DA;
-  --me: #1F7BFF; --shadow: 0 1px 2px rgba(42,26,22,.10), 0 8px 22px rgba(42,26,22,.16); --shadow-sm: 0 1px 3px rgba(42,26,22,.12);
-  --r: 14px; --r-btn: 14px; --tee: #FFFFFF; --tee-edge: #2A1A16;
+  --nav-bg: #221F1D; --nav-fg: #F5F5F3;
+  --tab-bg: #FFFFFF; --tab-fg: #817D79; --tab-on: #157A4F; --tab-line: #E0E0DC;
+  --link: #157A4F; --ok: #157A4F; --closed: #B3261E; --sun: #FFD166; --on-sun: #221F1D;
+  --map-land: #F1F1EE; --map-block: #E4E4E0; --map-water: #7FB4DA; --map-park: #B9D39F; --map-campus: #EAEAE6;
+  --map-road: #FFFFFF; --map-road-minor: #F7F7F5; --map-hwy: #F0C97C; --map-casing: #D2D2CD; --map-label: #6E6A66; --map-water-label: #25587F; --map-halo: #F1F1EE;
+  --me: #1F7BFF; --shadow: 0 1px 2px rgba(34,31,29,.10), 0 8px 22px rgba(34,31,29,.16); --shadow-sm: 0 1px 3px rgba(34,31,29,.12);
+  --r: 14px; --r-btn: 14px; --tee: #FFFFFF; --tee-edge: #221F1D;
   --tab-h: 64px;
   --font: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: "Bricolage Grotesque", "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
