@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Underground</title>
+<meta name="description" content="Find underground raves, warehouse parties and club nights across South Florida.">
+<meta name="theme-color" content="#08080A">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="stage">
+<div class="app" id="app">
+
+  <section class="screen has-tabs is-active" data-screen="radar" aria-label="Radar">
+    <header class="top">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <h1>UNDERGROUND</h1>
+        <button class="loc" id="locBtn" type="button" aria-label="Change location"></button>
+      </div>
+      <label class="search">
+        <span class="ico" data-icon="search" aria-hidden="true"></span>
+        <input id="q" type="search" placeholder="Artist, crew, venue, genre" autocomplete="off" enterkeyhint="search" aria-label="Search raves">
+        <button class="clear" id="qClear" type="button" aria-label="Clear search" hidden></button>
+      </label>
+      <div class="chips scroller" id="whenChips" aria-label="Filters"></div>
+      <div class="chips scroller" id="genreChips" aria-label="Sound"></div>
+    </header>
+    <div class="scroll" id="feed"></div>
+  </section>
+
+  <section class="screen has-tabs" data-screen="weekly" aria-label="Weekly">
+    <header class="top plain"><h2>Every week</h2><p class="sub">Standing nights. Show up, become a regular, meet the crews.</p></header>
+    <div class="scroll" id="weekly"></div>
+  </section>
+
+  <section class="screen has-tabs" data-screen="saved" aria-label="Saved">
+    <header class="top plain"><h2>Saved</h2><p class="sub">Your lineup. Add to calendar before the details drop.</p></header>
+    <div class="scroll" id="saved"></div>
+  </section>
+
+  <section class="screen has-tabs" data-screen="scene" aria-label="Scene">
+    <header class="top plain"><h2>The scene</h2><p class="sub">How people actually find the good ones.</p></header>
+    <div class="scroll" id="scene"></div>
+  </section>
+
+  <nav class="tabbar" aria-label="Main">
+    <button class="tab is-active" data-go="radar" data-icon="radar">Radar</button>
+    <button class="tab" data-go="weekly" data-icon="repeat">Weekly</button>
+    <button class="tab" data-go="saved" data-icon="bookmark">Saved</button>
+    <button class="tab" data-go="scene" data-icon="users">Scene</button>
+  </nav>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Event">
+    <div class="scrim" data-close></div>
+    <div class="panel">
+      <div class="grabber" aria-hidden="true"></div>
+      <div class="panel-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+</div>
+<script src="js/events.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
