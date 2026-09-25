@@ -13,7 +13,7 @@
 <div class="stage">
 <div class="app" id="app">
 
-  <section class="screen has-tabs is-active" data-screen="map" aria-label="Coffee shops">
+  <section class="screen has-tabs is-active" data-screen="map" aria-label="Order">
     <div class="searchbar">
       <span class="logo" id="logo" aria-hidden="true"></span>
       <label class="search"><span id="searchIcon" aria-hidden="true"></span>
@@ -30,7 +30,7 @@
   </section>
 
   <section class="screen" data-screen="menu" aria-label="Menu">
-    <div class="nav"><button class="back" data-back><span class="bk"></span>Map</button><h1 id="menuTitle"></h1></div>
+    <div class="nav"><button class="back" data-back><span class="bk"></span>Shops</button><h1 id="menuTitle"></h1></div>
     <div class="scroll" id="menuBody"></div>
     <div class="bottom-bar" id="cartBar" hidden></div>
   </section>
@@ -41,12 +41,17 @@
     <div class="bottom-bar" id="placeBar"></div>
   </section>
 
+  <section class="screen has-tabs" data-screen="specials" aria-label="Promotions">
+    <div class="scroll" id="specialsBody"></div>
+  </section>
+
   <section class="screen has-tabs" data-screen="orders" aria-label="Orders">
     <div class="scroll" id="ordersBody"></div>
   </section>
 
   <nav class="tabbar" id="tabbar" aria-label="Main">
-    <button class="tab is-active" data-go="map" data-icon="map">Shops</button>
+    <button class="tab" data-go="specials" data-icon="tag">Promotions</button>
+    <button class="tab is-active" data-go="map" data-icon="cup">Order</button>
     <button class="tab" data-go="orders" data-icon="receipt">Orders</button>
   </nav>
 

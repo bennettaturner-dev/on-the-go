@@ -15,7 +15,9 @@ python3 -m http.server 8080
 
 ## How it works
 
-1. The app opens on a map of Boca Raton coffee shops with a search bar on top.
+1. The app has three tabs: **Promotions**, **Order** (the map, in the middle, where the app
+   opens) and **Orders** (status and past orders). Order shows Boca Raton coffee shops with a
+   search bar on top.
 2. Tap a shop, or search by shop name, street or drink ("cold brew", "croissant").
 3. The shop card shows today's hours, distance, how busy it usually is right now, and how
    long an order will take. Tap **Order here**.
@@ -25,7 +27,8 @@ python3 -m http.server 8080
 
 **Drink of the day.** Each shop gets one day a week (`featureDay` in `js/data.js`). On that
 day its best drink shows in a yellow tag above its pin on the map, at the top of its menu and
-on its shop card.
+on its shop card. The Promotions tab lists today's drinks (tap one to order it) and the rest
+of the week.
 
 **Ready-time estimate.** Google doesn't offer its "Popular times" data through any API, so
 `busyness()` in `js/app.js` estimates it. It starts from a typical café's traffic for the hour

@@ -114,6 +114,8 @@
   const I = {
     cup: sv('<path d="M5 8h11v6a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5Z"/><path d="M16 9.5h1.5a2.5 2.5 0 0 1 0 5H16"/>', 2.2),
     map: sv('<path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5V4l-6 2.5Z"/><path d="M9 4v13M15 6.5v13"/>', 2),
+    tag: sv('<path d="M3 3h8l10 10-8 8L3 11Z"/><rect x="6.5" y="6.5" width="2" height="2"/>', 2),
+    star: sv('<path d="M12 3.5 14.6 9l6 .6-4.5 4 1.3 5.9L12 16.6l-5.4 2.9 1.3-5.9-4.5-4 6-.6Z"/>', 2),
     receipt: sv('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6"/>', 2),
     back: sv('<path d="M15 5l-7 7 7 7"/>', 2.6),
     go: sv('<path d="M9 5l7 7-7 7"/>', 2.4),
@@ -129,9 +131,9 @@
   function go(screen) {
     state.screen = screen;
     $$('.screen').forEach((el) => el.classList.toggle('is-active', el.dataset.screen === screen));
-    $('#tabbar').hidden = !(screen === 'map' || screen === 'orders');
+    $('#tabbar').hidden = !['map', 'specials', 'orders'].includes(screen);
     $$('.tab').forEach((t) => { t.classList.toggle('is-active', t.dataset.go === screen); t.setAttribute('aria-current', t.dataset.go === screen ? 'page' : 'false'); });
-    ({ map: renderMap, menu: renderMenu, cart: renderCart, orders: renderOrders })[screen]();
+    ({ map: renderMap, menu: renderMenu, cart: renderCart, specials: renderSpecials, orders: renderOrders })[screen]();
     save();
   }
 
@@ -169,7 +171,8 @@
       '<g id="pins"></g>';
 
     map.vb.x = D.me.x - map.vb.w / 2;
-    map.vb.y = D.me.y - map.vb.w * 0.3;
+    map.vb.y = D.me.y - map.vb.h / 2;
+    if (window.ResizeObserver) new ResizeObserver(() => applyViewBox()).observe(svg);
 
     const rect = () => svg.getBoundingClientRect();
     svg.addEventListener('pointerdown', (e) => {
@@ -225,7 +228,10 @@
 
   function applyViewBox() {
     const r = map.svg.getBoundingClientRect();
-    map.vb.h = map.vb.w * (r.height / (r.width || 1));
+    if (!r.width || !r.height) return;
+    const h = map.vb.w * (r.height / r.width);
+    map.vb.y += (map.vb.h - h) / 2;   /* keep the same center when the map changes size */
+    map.vb.h = h;
     map.svg.setAttribute('viewBox', [map.vb.x, map.vb.y, map.vb.w, map.vb.h].join(' '));
     const k = map.vb.w / (r.width || 400);
     map.svg.style.setProperty('--k', k);
@@ -494,6 +500,26 @@
     $('#ordersBody').scrollTop = 0;
   }
 
+  /* ---------- specials: every shop's drink of the day, today first ---------- */
+  function renderSpecials() {
+    const now = new Date(), today = now.getDay();
+    const byDay = (d) => sorted().filter((s) => s.featureDay === d);
+    const row = (s, live) => '<button class="row" ' + (live ? 'data-special="' + s.id + '"' : 'data-select="' + s.id + '" data-to-map') + '>' + tile(s) +
+      '<div class="grow"><div class="t">' + esc(C[s.signature].name) + '</div><div class="s">' + esc(s.name) + ' · ' + miles(s) + '</div>' +
+      (live && !isOpenAt(s, now) ? '<div class="s">' + hoursLine(s) + '</div>' : '') + '</div>' +
+      '<span class="end"><b style="color:var(--text)">' + money(priceAt(s, s.signature)) + '</b></span></button>';
+    const todays = byDay(today);
+    $('#specialsBody').innerHTML = '<h1 class="page-title">Promotions</h1>' +
+      '<p class="note" style="padding-top:0">Each shop features its best drink one day a week.</p>' +
+      '<div class="head">Today, ' + DAYS[today] + '</div>' +
+      (todays.length ? todays.map((s) => row(s, true)).join('') : '<p class="note">No specials today.</p>') +
+      '<div class="head">Later this week</div>' +
+      [1, 2, 3, 4, 5, 6].map((i) => (today + i) % 7).map((d) => {
+        const list = byDay(d);
+        return list.length ? '<div class="day">' + DAYS[d] + '</div>' + list.map((s) => row(s, false)).join('') : '';
+      }).join('');
+  }
+
   /* ---------- orders ---------- */
   /* The ready time is set when the order is placed, from eta(). The shop "accepts" within a minute. */
   function readyAt(o) { return o.readyAt || o.placedAt + 5 * 60000; }
@@ -555,6 +581,13 @@
       else return;
       return renderItem();
     }
+    if (d.special) {
+      const s = storeById(d.special);
+      if (!isOpenAt(s, new Date())) { state.storeId = s.id; go('map'); return selectStore(s.id); }
+      startOrder(s.id);
+      return openItem(s.signature);
+    }
+    if (d.toMap !== undefined) { go('map'); return selectStore(d.select); }
     if (d.go) return go(d.go);
     if (d.back !== undefined) return go('map');
     if (d.select) return selectStore(d.select);
@@ -605,5 +638,5 @@
   $('#zoomOut').innerHTML = I.minus;
   $$('.bk').forEach((b) => { b.outerHTML = I.back; });
   $$('.tab').forEach((t) => { t.innerHTML = I[t.dataset.icon] + '<span>' + t.textContent.trim() + '</span>'; });
-  go(['map', 'menu', 'cart', 'orders'].includes(state.screen) ? state.screen : 'map');
+  go(['map', 'menu', 'cart', 'specials', 'orders'].includes(state.screen) ? state.screen : 'map');
 })();
