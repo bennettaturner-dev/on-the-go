@@ -148,9 +148,9 @@ svg { display: block; }
 .map-street { fill: var(--map-label); font-size: calc(11px * var(--k)); paint-order: stroke; stroke: var(--map-road); stroke-width: calc(2.5px * var(--k)); }
 .map-street--area { fill: #3E6B35; stroke: none; }
 .pin { cursor: pointer; }
-.pin-box { fill: #000000; stroke: #FFFFFF; stroke-width: 2; }
-.pin-cup { fill: none; stroke: #FFFFFF; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.pin.is-selected .pin-box { stroke: #FFD400; stroke-width: 3; }
+.pin-box { stroke: #FFFFFF; stroke-width: 2; }
+.pin-mono { font-weight: 800; letter-spacing: -.02em; }
+.pin.is-selected .pin-box { stroke: #000000; stroke-width: 3; }
 .pin-name { font-size: 13px; font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--map-halo); stroke-width: 3.5px; stroke-linejoin: round; }
 .pin-deal rect { fill: #FFD400; stroke: #000000; stroke-width: 1.5; }
 .pin-deal text { fill: #000000; font-size: 12px; font-weight: 700; }
@@ -258,3 +258,18 @@ svg { display: block; }
 .empty .btn { margin: 24px auto 0; }
 .sum { column-gap: 0; }
 .sum span:nth-child(even) { text-align: right; padding-left: 12px; }
+
+/* each shop's color and initials */
+.tile { width: 44px; height: 44px; display: grid; place-items: center; flex: none; font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
+.tile--big { width: 56px; height: 56px; font-size: 20px; border: 2px solid currentColor; }
+.band { display: flex; align-items: center; gap: 14px; padding: 16px; }
+.band h2 { font-size: 26px; font-weight: 800; line-height: 1.15; }
+.band p { font-size: 16px; margin-top: 4px; font-weight: 500; }
+.band--thin { padding: 12px 16px; }
+.band--thin h2 { font-size: 20px; }
+.band--thin .tile { border: 2px solid currentColor; }
+.backlink { padding: 0 16px; gap: 2px; }
+.backlink svg { width: 20px; height: 20px; }
+.card { padding: 12px 16px 16px; }
+.menu-top { padding: 12px 16px; }
+.row .tile { align-self: flex-start; }

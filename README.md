@@ -33,6 +33,10 @@ and day, reshapes it for the kind of place the shop is on Google (breakfast spot
 mall, restaurant, downtown), and scales it by the shop's Google review count. `eta()` adds the
 line that busyness implies to the time it takes to make the items in the order.
 
+**Each shop looks a little different.** Every shop has its own color and initials on its map
+pin, list row, shop card, menu header and order status, plus a one-line description (`brand`
+and `tag` in `js/data.js`). The colors are this app's picks, not the shops' official branding.
+
 **Design rules.** No rounded corners. Text is 16px or larger, tap targets are 48px or taller,
 and text contrast is at least 4.5:1 in light and dark mode.
 

@@ -279,14 +279,17 @@
       }
       return '<g class="pin' + (s.id === state.storeId ? ' is-selected' : '') + '" data-id="' + s.id + '" data-x="' + s.x + '" data-y="' + s.y + '">' +
         deal +
-        '<rect class="pin-box" x="-14" y="-14" width="28" height="28"/>' +
-        '<path class="pin-cup" d="M-6 -4h9v4a4.5 4.5 0 0 1-4.5 4.5h0a4.5 4.5 0 0 1-4.5-4.5Z M3 -2.6h1.4a2 2 0 0 1 0 4H3"/>' +
+        '<rect class="pin-box" x="-15" y="-15" width="30" height="30" fill="' + s.brand.bg + '"/>' +
+        '<text class="pin-mono" y="' + (s.brand.mono.length > 2 ? 4 : 5) + '" text-anchor="middle" fill="' + s.brand.fg + '" font-size="' + (s.brand.mono.length > 2 ? 10 : 13) + '">' + esc(s.brand.mono) + '</text>' +
         '<text class="pin-name" y="30" text-anchor="middle">' + esc(s.name) + '</text></g>';
     }).join('');
     /* drink-of-the-day pins draw on top */
     $$('#pins .pin-deal').forEach((d) => d.parentNode.parentNode.appendChild(d.parentNode));
     applyViewBox();
   }
+
+  const tile = (s, big) => '<span class="tile' + (big ? ' tile--big' : '') + '" style="background:' + s.brand.bg + ';color:' + s.brand.fg + '" aria-hidden="true">' + esc(s.brand.mono) + '</span>';
+  const band = (s) => 'style="background:' + s.brand.bg + ';color:' + s.brand.fg + '"';
 
   function todayCard(s, attrs) {
     return '<button class="today" ' + attrs + '><div class="grow"><div class="k">' + DAYS[s.featureDay] + ' drink of the day</div><div class="n">' + esc(C[s.signature].name) + '</div></div><span class="p">' + money(priceAt(s, s.signature)) + '</span></button>';
@@ -302,9 +305,9 @@
     if (s) {
       const now = new Date(), open = isOpenAt(s, now), e = eta(s, []);
       const other = state.bag.length && state.orderStoreId !== s.id ? storeById(state.orderStoreId) : null;
-      body.innerHTML = '<div class="card">' +
-        '<div class="top"><div class="grow"><h2>' + esc(s.name) + '</h2><p class="addr">' + esc(s.address) + '</p></div>' +
-        '<button class="link" data-deselect>All shops</button></div>' +
+      body.innerHTML = '<button class="link backlink" data-deselect>' + I.back + 'All shops</button>' +
+        '<div class="band" ' + band(s) + '>' + tile(s, true) + '<div class="grow"><h2>' + esc(s.name) + '</h2><p>' + esc(s.tag) + '</p></div></div>' +
+        '<div class="card"><p class="addr">' + esc(s.address) + '</p>' +
         '<div class="facts">' +
           '<div><span>Hours today</span><span>' + hoursLine(s) + '</span></div>' +
           '<div><span>Distance</span><span>' + miles(s) + '</span></div>' +
@@ -318,8 +321,8 @@
     } else {
       const list = matches();
       body.innerHTML = '<div class="head">' + (state.query ? list.length + ' result' + (list.length === 1 ? '' : 's') : 'Coffee shops near you') + '</div>' +
-        (list.length ? list.map((st) => '<button class="row" data-select="' + st.id + '"><div class="grow"><div class="t">' + esc(st.name) + '</div>' +
-          '<div class="s">' + hoursLine(st) + ' · ' + miles(st) + '</div>' +
+        (list.length ? list.map((st) => '<button class="row" data-select="' + st.id + '">' + tile(st) + '<div class="grow"><div class="t">' + esc(st.name) + '</div>' +
+          '<div class="s">' + esc(st.tag) + '</div><div class="s">' + hoursLine(st) + ' · ' + miles(st) + '</div>' +
           (isFeatureDay(st) ? '<span class="pick">Today: ' + esc(C[st.signature].name) + '</span>' : '') + '</div>' +
           '<span class="go">' + I.go + '</span></button>').join('')
           : '<p class="note">No shops match “' + esc(state.query) + '”. Try a shop name or a drink like “latte”.</p>');
@@ -364,8 +367,8 @@
     const now = new Date(), e = eta(s, state.bag);
     $('#menuTitle').textContent = s.name;
     $('#menuBody').innerHTML =
-      '<div class="menu-top"><h2>' + esc(s.name) + '</h2>' +
-        '<p>' + (isOpenAt(s, now) ? '<span class="ready">Ready in ' + etaText(e) + '</span> · ' + busyWord(e.busy) + ' now' : hoursLine(s)) + '</p>' +
+      '<div class="band" ' + band(s) + '>' + tile(s, true) + '<div class="grow"><h2>' + esc(s.name) + '</h2><p>' + esc(s.tag) + '</p></div></div>' +
+      '<div class="menu-top"><p>' + (isOpenAt(s, now) ? '<span class="ready">Ready in ' + etaText(e) + '</span> · ' + busyWord(e.busy) + ' now' : hoursLine(s)) + '</p>' +
         '<p>' + esc(s.address) + ' · ' + miles(s) + '</p></div>' +
       (isFeatureDay(s) ? '<div class="menu-group"><div class="head">Drink of the day</div>' + itemRow(s, s.signature, priceAt(s, s.signature)) + '</div>' : '') +
       '<div class="cats" role="tablist">' + cats.map((c) => '<button class="cat' + (c.id === menuCat ? ' is-on' : '') + '" data-cat="' + c.id + '" role="tab" aria-selected="' + (c.id === menuCat) + '">' + c.name + '</button>').join('') + '</div>' +
@@ -460,7 +463,7 @@
     $('#cartBody').innerHTML =
       '<div class="eta-box"><b>Ready in ' + etaText(e) + '</b><span>' + esc(s.name) + ' is usually ' + busyWord(e.busy).toLowerCase() + ' at this time of day.</span></div>' +
       '<div class="head">Pick up at</div>' +
-      '<div class="row"><div class="grow"><div class="t">' + esc(s.name) + '</div><div class="s">' + esc(s.address) + '</div></div><button class="link" data-change-store>Change</button></div>' +
+      '<div class="row">' + tile(s) + '<div class="grow"><div class="t">' + esc(s.name) + '</div><div class="s">' + esc(s.address) + '</div></div><button class="link" data-change-store>Change</button></div>' +
       (s.pickup.length > 1 ? '<div class="head">How</div>' + choice(state.pickupMode === 'store', 'data-mode="store"', 'Walk in and pick up') + choice(state.pickupMode === 'curbside', 'data-mode="curbside"', 'Curbside, they bring it out') : '') +
       (later.length ? '<div class="head">When</div>' + choice(!state.pickupIn, 'data-time="0"', 'As soon as it\'s ready', etaText(e)) +
         later.map((m) => choice(state.pickupIn === m, 'data-time="' + m + '"', m === 60 ? 'In 1 hour' : 'In ' + m + ' minutes', clock(Date.now() + m * 60000))).join('') : '') +
@@ -511,7 +514,7 @@
       active.map((o) => {
         const st = stage(o), s = storeById(o.storeId);
         const mins = Math.max(0, Math.ceil((readyAt(o) - Date.now()) / 60000));
-        return '<div class="status"><div class="big">' + (st === 2 ? 'Ready now' : 'Ready in about ' + mins + ' min') + '</div>' +
+        return '<div class="band band--thin" ' + band(s) + '>' + tile(s) + '<div class="grow"><h2>' + esc(s.name) + '</h2></div></div><div class="status"><div class="big">' + (st === 2 ? 'Ready now' : 'Ready in about ' + mins + ' min') + '</div>' +
           '<div class="when">' + (st === 2 ? 'Since ' : 'Around ') + clock(readyAt(o)) + '</div>' +
           '<div class="where">' + esc(s.name) + ', ' + esc(s.address) + ' · ' + (o.mode === 'curbside' ? 'Curbside' : 'Walk in') + '</div>' +
           '<ul class="steps">' + steps.map((x, i) => '<li class="' + (i < st || (st === 2 && i === 2) ? 'done' : i === st ? 'now' : '') + '">' + box + x + '</li>').join('') + '</ul>' +
@@ -522,7 +525,7 @@
           '<div class="sum"><span class="tot">Total</span><span class="tot">' + money(o.total) + '</span></div>';
       }).join('') +
       (past.length ? '<div class="head">Past orders</div>' + past.slice(0, 15).map((o) =>
-        '<div class="row"><div class="grow"><div class="t">' + esc(storeById(o.storeId).name) + '</div><div class="s">' + new Date(o.placedAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + o.lines.map((l) => esc(lineName(l))).join(', ') + '</div></div>' +
+        '<div class="row">' + tile(storeById(o.storeId)) + '<div class="grow"><div class="t">' + esc(storeById(o.storeId).name) + '</div><div class="s">' + new Date(o.placedAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + o.lines.map((l) => esc(lineName(l))).join(', ') + '</div></div>' +
         '<button class="link" data-reorder="' + o.id + '">Order again</button></div>').join('') : '') +
       (!state.orders.length ? '<div class="empty"><h2>No orders yet</h2><p>When you place an order, it shows up here.</p><button class="btn btn--auto" data-go="map">Find a shop</button></div>' : '');
     if (active.length) timer = setInterval(() => { if (state.screen === 'orders') renderOrders(); }, 5000);

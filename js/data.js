@@ -4,7 +4,9 @@
    week: hours by day, Sunday first (null = closed); falls back to hours.
    pattern + traffic drive the pickup-time estimate in app.js (see busyness()); traffic is scaled
    from each shop's Google review count. Coordinates are from each shop's Google Maps listing.
-   featureDay: the weekday (0 = Sunday) the shop's signature drink shows on the map. */
+   featureDay: the weekday (0 = Sunday) the shop's signature drink shows on the map.
+   brand: colors and initials for the shop's pin and header. These are this app's picks, not
+   the shops' official branding; each pair passes 4.5:1 contrast. tag: one line about the shop. */
 
 window.OTG_DATA = {
   /* "you": Sanborn Square, downtown Boca Raton */
@@ -126,32 +128,37 @@ window.OTG_DATA = {
 
   /* menu: [catalog id, price]. Signature is what the shop is known for. */
   stores: [
-    { id: 'subculture', name: 'Subculture Coffee', address: '437 Plaza Real, Mizner Park', lat: 26.3555962, lng: -80.0857171,
+    { id: 'subculture', brand: { bg: '#1F3A5F', fg: '#FFFFFF', mono: 'SC' }, tag: 'Specialty roaster in Mizner Park',
+      name: 'Subculture Coffee', address: '437 Plaza Real, Mizner Park', lat: 26.3555962, lng: -80.0857171,
       hours: '7 AM – 8 PM', pattern: 'downtown', traffic: 0.79, featureDay: 1, pickup: ['store', 'curbside'], shot: 1.50, syrup: 0.75, signature: 'frenchpress',
       about: 'Palm Beach County roaster with a counter on the Mizner Park promenade.',
       menu: [['espresso', 2.50], ['cortado', 2.75], ['cappuccino', 3.50], ['latte', 4.00], ['flatwhite', 4.00], ['mocha', 4.50], ['drip', 2.75], ['frenchpress', 4.50],
              ['icedlatte', 4.00], ['icedmocha', 4.50], ['coldbrew', 3.00], ['icedamericano', 2.75], ['chai', 4.00], ['icedtea', 2.25], ['mate', 2.25],
              ['croissant', 3.50], ['choccroissant', 3.95]] },
 
-    { id: 'seed', name: 'the seed. coffee + juice', address: '199 W Palmetto Park Rd', lat: 26.350844, lng: -80.0892075,
+    { id: 'seed', brand: { bg: '#B0440F', fg: '#FFFFFF', mono: 's.' }, tag: 'Juice bar, açaí and vegan options',
+      name: 'the seed. coffee + juice', address: '199 W Palmetto Park Rd', lat: 26.350844, lng: -80.0892075,
       hours: '7 AM – 6 PM', pattern: 'breakfast', traffic: 1.4, featureDay: 2, pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'cinnabee',
       about: 'Coffee, cold-pressed juice and açaí, with plenty of vegan options.',
       menu: [['cinnabee', 6.00], ['strawcream', 6.25], ['mushroom', 5.50], ['latte', 5.00], ['cappuccino', 4.75], ['coldbrew', 4.75], ['icedlatte', 5.25],
              ['matcha', 5.75], ['cream', 9.50], ['acai', 12.95], ['bagelbomb', 4.95], ['gfmuffin', 4.50], ['bananaloaf', 4.25]] },
 
-    { id: 'lss', name: 'Long Story Short Cafe', address: '132 NE 2nd St', lat: 26.3520155, lng: -80.084757,
+    { id: 'lss', brand: { bg: '#8E2F4F', fg: '#FFFFFF', mono: 'LS' }, tag: 'Açaí bowls, toasts and fun lattes',
+      name: 'Long Story Short Cafe', address: '132 NE 2nd St', lat: 26.3520155, lng: -80.084757,
       hours: '7 AM – 3 PM', pattern: 'breakfast', traffic: 0.74, featureDay: 3, pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'ube',
       about: 'Healthy, chic-casual café for coffee, smoothies and açaí bowls.',
       menu: [['drip', 3.50], ['espresso', 3.50], ['americano', 3.75], ['macchiato', 4.00], ['flatwhite', 4.75], ['cappuccino', 5.00], ['latte', 5.25],
              ['bschai', 6.00], ['cocoa', 5.50], ['ube', 6.75], ['pumpkincf', 6.50], ['icedlatte', 5.50], ['acai', 13.00], ['avotoast', 12.00]] },
 
-    { id: 'saquella', name: 'Saquella Café', address: '410 Via De Palmas, Royal Palm Place', lat: 26.346229, lng: -80.085299,
+    { id: 'saquella', brand: { bg: '#7D1A24', fg: '#FFFFFF', mono: 'SQ' }, tag: 'Italian café, family roaster since 1856',
+      name: 'Saquella Café', address: '410 Via De Palmas, Royal Palm Place', lat: 26.346229, lng: -80.085299,
       hours: '7 AM – 9 PM', pattern: 'evening', traffic: 1.4, featureDay: 4, pickup: ['store'], shot: 1.25, syrup: 0.75, signature: 'cappuccino',
       about: 'Italian café pouring Saquella, roasted by the family in Pescara since 1856. Pastries baked daily.',
       menu: [['espresso', 3.00], ['macchiato', 3.50], ['cappuccino', 4.75], ['latte', 5.00], ['affogato', 6.50],
              ['espcookie', 3.50], ['berrycroissant', 4.75], ['plumalmond', 4.95], ['croissant', 3.75], ['cannoli', 4.50], ['fruittart', 6.50], ['tiramisu', 8.00]] },
 
-    { id: 'third', name: 'Third Place Coffee Lounge', address: '325 NE Spanish River Blvd', lat: 26.3868415, lng: -80.0804472,
+    { id: 'third', brand: { bg: '#4B3F72', fg: '#FFFFFF', mono: '3P' }, tag: 'Lounge seats, good for working',
+      name: 'Third Place Coffee Lounge', address: '325 NE Spanish River Blvd', lat: 26.3868415, lng: -80.0804472,
       hours: '6:30 AM – 7 PM', pattern: 'breakfast', traffic: 0.96, featureDay: 5, pickup: ['store', 'curbside'], shot: 1.50, syrup: 0.75, signature: 'honeylav',
       about: 'Lounge seating, long tables and seasonal drinks. Menu and prices from the shop\'s website.',
       menu: [['honeylav', 6.25], ['rosecard', 6.25], ['espresso', 3.75], ['macchiato', 4.00], ['cortado', 4.25], ['cappuccino', 4.50], ['flatwhite', 4.75],
@@ -160,31 +167,36 @@ window.OTG_DATA = {
              ['chai', 4.75], ['matcha', 4.75], ['londonfog', 4.75], ['obchai', 5.75], ['hottea', 3.00], ['icedtea', 3.50], ['cider', 4.00],
              ['strawog', 11.00], ['chocbanana', 12.50], ['croissant', 4.00]] },
 
-    { id: 'mane', name: 'Mane Coffee', address: '500 NE Spanish River Blvd, Ste 7', lat: 26.3854727, lng: -80.077721,
+    { id: 'mane', brand: { bg: '#E0A526', fg: '#000000', mono: 'M' }, tag: 'Food & Wine best coffee shop pick',
+      name: 'Mane Coffee', address: '500 NE Spanish River Blvd, Ste 7', lat: 26.3854727, lng: -80.077721,
       hours: '8 AM – 5 PM', week: ['9 AM – 2 PM', '8 AM – 5 PM', '8 AM – 5 PM', '8 AM – 5 PM', '8 AM – 5 PM', '8 AM – 5 PM', '8 AM – 5 PM'], pattern: 'breakfast', traffic: 0.98, featureDay: 6, pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'nitro',
       about: 'Named one of America\'s best coffee shops by Food & Wine. Fresh bread and brunch too.',
       menu: [['espresso', 3.50], ['macchiato', 4.00], ['cortado', 4.25], ['cappuccino', 4.50], ['latte', 5.00], ['drip', 3.50], ['nitro', 5.50],
              ['icedlatte', 5.25], ['chai', 4.50], ['matcha', 5.00], ['lemonade', 5.00], ['avotoast', 12.00], ['croissant', 4.25]] },
 
-    { id: 'louis', name: 'Cafe Louis', address: '3581 N Federal Hwy', lat: 26.3825195, lng: -80.0769894,
+    { id: 'louis', brand: { bg: '#3B2A1A', fg: '#E9C46A', mono: 'CL' }, tag: 'Espresso lounge and designer consignment',
+      name: 'Cafe Louis', address: '3581 N Federal Hwy', lat: 26.3825195, lng: -80.0769894,
       hours: '7 AM – 7 PM', pattern: 'commuter', traffic: 0.85, featureDay: 0, pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'lavacup',
       about: 'Espresso lounge and designer consignment shop on Federal Hwy.',
       menu: [['lavacup', 7.50], ['espresso', 3.50], ['macchiato', 4.00], ['cortado', 4.50], ['cappuccino', 5.00], ['latte', 5.50], ['americano', 4.00],
              ['icedlatte', 5.75], ['coldbrew', 5.00], ['bgaffogato', 8.50], ['quiche', 8.95], ['croissant', 4.25], ['choccroissant', 4.75]] },
 
-    { id: 'carmela', name: 'Carmela Coffee at BRiC', address: '4800 T-Rex Ave, Ste 150', lat: 26.3901452, lng: -80.1077121,
+    { id: 'carmela', brand: { bg: '#0E6464', fg: '#FFFFFF', mono: 'C' }, tag: 'Grows its own beans in Costa Rica',
+      name: 'Carmela Coffee at BRiC', address: '4800 T-Rex Ave, Ste 150', lat: 26.3901452, lng: -80.1077121,
       hours: '7 AM – 4 PM', pattern: 'office', traffic: 0.81, featureDay: 1, pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'carmacch',
       about: 'Boca-born roaster growing its own beans in Costa Rica. Inside the Boca Raton Innovation Campus.',
       menu: [['drip', 3.25], ['latte', 5.00], ['cappuccino', 4.75], ['carmacch', 5.75], ['pumpkinlatte', 6.25], ['icedcoffee', 3.95], ['icedlatte', 5.25],
              ['matcha', 5.75], ['chai', 5.25], ['avotoast', 12.50], ['croissant', 4.00]] },
 
-    { id: 'lpp', name: 'LPP Bakery Café', address: '1 Town Center Rd, Ste 102', lat: 26.3619477, lng: -80.127561,
+    { id: 'lpp', brand: { bg: '#1E3A8A', fg: '#FFFFFF', mono: 'LPP' }, tag: 'French bakery, croissants all morning',
+      name: 'LPP Bakery Café', address: '1 Town Center Rd, Ste 102', lat: 26.3619477, lng: -80.127561,
       hours: '7:30 AM – 4 PM', week: [null, '7:30 AM – 4 PM', '7:30 AM – 4 PM', '7:30 AM – 4 PM', '7:30 AM – 4 PM', '7:30 AM – 4 PM', null], pattern: 'mall', traffic: 0.65, featureDay: 3, pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'almondcroissant',
       about: 'Le Petit Poussin. A French bakery run by a French couple, croissants all morning.',
       menu: [['espresso', 3.00], ['cappuccino', 4.75], ['latte', 5.00], ['americano', 3.75], ['icedlatte', 5.25],
              ['croissant', 3.75], ['choccroissant', 4.25], ['almondcroissant', 4.75], ['macaron', 7.50], ['crepe', 11.00], ['baguette', 12.50]] },
 
-    { id: 'pots', name: 'The Pots Cafe', address: '6000 Glades Rd, Town Center', lat: 26.3660454, lng: -80.1348276,
+    { id: 'pots', brand: { bg: '#2E5E3A', fg: '#FFFFFF', mono: 'P' }, tag: 'Café inside a plant shop',
+      name: 'The Pots Cafe', address: '6000 Glades Rd, Town Center', lat: 26.3660454, lng: -80.1348276,
       hours: '10 AM – 5 PM', week: ['11 AM – 7 PM', '10 AM – 5 PM', '10 AM – 5 PM', '10 AM – 5 PM', '10 AM – 5 PM', '10 AM – 8 PM', '10 AM – 8 PM'], pattern: 'mall', traffic: 0.78, featureDay: 6, pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'cinnamonlatte',
       about: 'A plant shop and café in one, inspired by Costa Rica.',
       menu: [['espresso', 3.50], ['cappuccino', 5.00], ['latte', 5.25], ['cinnamonlatte', 6.00], ['matcha', 6.00], ['mintlemonade', 5.50],
