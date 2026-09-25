@@ -13,21 +13,43 @@ window.OTG_LOCAL_PHOTOS = {
   "cinnamonroll": "img/lpp/cinnamonroll.jpg",
   "espresso": "img/lpp/espresso.webp",
   "hamcroissant": "img/lpp/hamcroissant.webp",
+  "honeycinn": "img/lpp/honeycinn.jpg",
   "latte": "img/lpp/latte.webp",
   "macchiato": "img/lpp/macchiato.webp",
+  "maplecaramel": "img/lpp/maplecaramel.webp",
   "mocha": "img/lpp/mocha.webp",
   "parisian": "img/lpp/parisian.jpg",
   "quiche": "img/lpp/quiche.webp"
  },
  "seed": {
+  "almondjoy": "img/seed/almondjoy.jpg",
+  "apchai": "img/seed/apchai.jpg",
+  "bbcb": "img/seed/bbcb.jpg",
+  "camatcha": "img/seed/camatcha.jpg",
+  "cblatte": "img/seed/cblatte.jpg",
   "cheddarscone": "img/seed/cheddarscone.jpg",
+  "ctc": "img/seed/ctc.jpg",
   "floridaburrito": "img/seed/floridaburrito.jpg",
   "keylimebomb": "img/seed/keylimebomb.jpg",
-  "pestoburrito": "img/seed/pestoburrito.jpg"
+  "kicks": "img/seed/kicks.jpg",
+  "paws": "img/seed/paws.jpg",
+  "pccb": "img/seed/pccb.jpg",
+  "pestoburrito": "img/seed/pestoburrito.jpg",
+  "pmatcha": "img/seed/pmatcha.jpg",
+  "psl": "img/seed/psl.jpg",
+  "slider": "img/seed/slider.jpg"
  },
  "subculture": {
+  "americano": "img/subculture/americano.jpg",
+  "cappuccino": "img/subculture/cappuccino.jpg",
+  "cortado": "img/subculture/cortado.jpg",
+  "drip": "img/subculture/drip.jpg",
   "espresso": "img/subculture/espresso.jpg",
-  "macchiato": "img/subculture/macchiato.jpg"
+  "flatwhite": "img/subculture/flatwhite.jpg",
+  "icedcoffee": "img/subculture/icedcoffee.jpg",
+  "latte": "img/subculture/latte.jpg",
+  "macchiato": "img/subculture/macchiato.jpg",
+  "mocha": "img/subculture/mocha.jpg"
  },
  "third": {
   "americano": "img/third/americano.jpg",
