@@ -320,17 +320,19 @@
           '<text class="k" x="8" y="14">TODAY ONLY</text><text x="8" y="29">' + esc(name) + '</text></g>';
       }
       const img = shopPhoto(s), been = visited(s.id);
+      /* a golf tee: tapered shaft to the exact spot, flared cup on top, ball (photo or logo) resting in the cup */
       const ball = img
-        ? '<clipPath id="ball-' + s.id + '"><circle cy="-34" r="15.5"/></clipPath><image href="' + esc(img) + '" x="-17" y="-51" width="34" height="34" preserveAspectRatio="xMidYMid slice" clip-path="url(#ball-' + s.id + ')"/><circle class="ball" cy="-34" r="16" fill="none"/>'
-        : '<circle class="ball" cy="-34" r="16" fill="' + s.brand.bg + '"/><text class="pin-mono" y="' + (s.brand.mono.length > 2 ? -30 : -29) + '" text-anchor="middle" fill="' + s.brand.fg + '" font-size="' + (s.brand.mono.length > 2 ? 10 : 13) + '">' + esc(s.brand.mono) + '</text>';
+        ? '<clipPath id="ball-' + s.id + '"><circle cy="-40" r="15"/></clipPath><circle cy="-40" r="16.5" fill="' + s.brand.bg + '"/><image href="' + esc(img) + '" x="-15" y="-55" width="30" height="30" preserveAspectRatio="xMidYMid slice" clip-path="url(#ball-' + s.id + ')"/><circle class="ball" cy="-40" r="16" fill="none"/>'
+        : '<circle class="ball" cy="-40" r="16" fill="' + s.brand.bg + '"/><text class="pin-mono" y="' + (s.brand.mono.length > 2 ? -36 : -35) + '" text-anchor="middle" fill="' + s.brand.fg + '" font-size="' + (s.brand.mono.length > 2 ? 10 : 13) + '">' + esc(s.brand.mono) + '</text>';
       return '<g class="pin' + (s.id === state.storeId ? ' is-selected' : '') + '" data-id="' + s.id + '" data-x="' + s.x + '" data-y="' + s.y + '">' +
-        deal.replace('-62)', '-98)') +
-        '<ellipse class="tee-shadow" cy="1" rx="7" ry="2.5"/>' +
-        '<path class="tee" d="M-2.4 -10 L2.4 -10 L0 0 Z"/><path class="tee" d="M-9 -18 L9 -18 L4 -10 L-4 -10 Z"/>' +
-        (been ? '<circle class="ball-ring" cy="-34" r="21"/>' : '') +
+        deal.replace('-62)', '-104)') +
+        '<ellipse class="tee-shadow" cy="1.5" rx="6" ry="2.2"/>' +
+        '<path class="tee" d="M0 0 L-2.6 -19 L2.6 -19 Z"/>' +
+        '<path class="tee" d="M-2.8 -19 C-3.5 -22.5 -8.5 -23 -9.5 -26.5 Q-10 -29 -7.5 -29 L7.5 -29 Q10 -29 9.5 -26.5 C8.5 -23 3.5 -22.5 2.8 -19 Z"/>' +
+        (been ? '<circle class="ball-ring" cy="-40" r="21.5"/>' : '') +
         ball +
-        (been ? '<g class="been-badge" transform="translate(13 -23)"><circle r="7"/><path d="M-3 0l2 2 4-4"/></g>' : '') +
-        '<text class="pin-name" y="14" text-anchor="middle">' + esc(s.name) + '</text></g>';
+        (been ? '<g class="been-badge" transform="translate(12.5 -29)"><circle r="7"/><path d="M-3 0l2 2 4-4"/></g>' : '') +
+        '<text class="pin-name" y="15" text-anchor="middle">' + esc(s.name) + '</text></g>';
     }).join('');
     /* drink-of-the-day pins draw on top */
     $$('#pins .pin-deal').forEach((d) => d.parentNode.parentNode.appendChild(d.parentNode));

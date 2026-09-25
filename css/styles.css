@@ -150,9 +150,9 @@ a { color: var(--link); }
 .map-street { fill: var(--map-label); font-size: calc(10.5px * var(--k)); paint-order: stroke; stroke: var(--map-road); stroke-width: calc(2.5px * var(--k)); }
 .map-street--area { fill: #4F7A45; stroke: none; font-weight: 700; }
 .pin { cursor: pointer; }
-.tee { fill: var(--tee); stroke: var(--tee-edge); stroke-width: 1.2; }
+.tee { fill: var(--tee); stroke: var(--tee-edge); stroke-width: 1.1; stroke-linejoin: round; }
 .tee-shadow { fill: rgba(0,0,0,.28); }
-.ball { stroke: var(--tee); stroke-width: 2.5; }
+.ball { stroke: var(--tee); stroke-width: 2.5; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.35)); }
 .ball-ring { fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-dasharray: 3 3; }
 .pin-mono { font-weight: 800; letter-spacing: -.02em; }
 .pin.is-selected .ball { stroke: var(--hot); stroke-width: 4; }
