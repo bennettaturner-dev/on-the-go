@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const D = window.OTG_DATA, C = D.catalog, M = window.OTG_MAP;
-  const STORAGE_KEY = 'onthego.v5';
+  const STORAGE_KEY = 'onthego.v6';
 
   /* ---------- helpers ---------- */
   const $ = (s, r) => (r || document).querySelector(s);
@@ -40,7 +40,7 @@
 
   const state = Object.assign({
     screen: 'map', storeId: null, orderStoreId: null, bag: [], orders: [],
-    pickupMode: 'store', pickupIn: 0, query: '', look: 'florida', seeded: false
+    pickupMode: 'store', pickupIn: 0, query: '', look: 'stucco', seeded: false
   }, load());
 
   /* Sample history so "Your usual" and visited pins have something to show before the first real
@@ -632,7 +632,7 @@
         '<div class="row">' + tile(storeById(o.storeId)) + '<div class="grow"><div class="t">' + esc(storeById(o.storeId).name) + (o.sample ? ' <span class="reason">Sample</span>' : '') + '</div><div class="s">' + new Date(o.placedAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + o.lines.map((l) => esc(lineName(l))).join(', ') + '</div></div>' +
         '<button class="link" data-reorder="' + o.id + '">Order again</button></div>').join('') : '') +
       (!state.orders.length ? '<div class="empty"><h2>No orders yet</h2><p>When you place an order, it shows up here.</p><button class="btn btn--auto" data-go="map">Find a shop</button></div>' : '') +
-      '<div class="look"><span>Look</span>' + [['florida', 'Florida Room'], ['stucco', 'Boca Stucco'], ['gotham', 'Gotham']].map((l) => '<button class="' + (state.look === l[0] ? 'is-on' : '') + '" data-look="' + l[0] + '">' + l[1] + '</button>').join('') + '</div>';
+      '<div class="look"><span>Look</span>' + [['stucco', 'Boca Stucco'], ['florida', 'Florida Room'], ['gotham', 'Gotham']].map((l) => '<button class="' + (state.look === l[0] ? 'is-on' : '') + '" data-look="' + l[0] + '">' + l[1] + '</button>').join('') + '</div>';
     if (active.length) timer = setInterval(() => { if (state.screen === 'orders') renderOrders(); }, 5000);
   }
 

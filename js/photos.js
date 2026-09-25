@@ -2,24 +2,45 @@
    ordering page. Regenerate with: node tools/photos-manifest.js */
 window.OTG_LOCAL_PHOTOS = {
  "carmela": {
+  "cappuccino": "img/carmela/cappuccino.jpg",
+  "cortado": "img/carmela/cortado.jpg",
+  "latte": "img/carmela/latte.jpg",
   "pancake": "img/carmela/pancake.jpg",
   "shakshuka": "img/carmela/shakshuka.jpg"
  },
  "lpp": {
+  "almondcroissant": "img/lpp/almondcroissant.webp",
   "americano": "img/lpp/americano.webp",
   "avotoast": "img/lpp/avotoast.jpg",
   "bfsandwich": "img/lpp/bfsandwich.webp",
   "cappuccino": "img/lpp/cappuccino.webp",
+  "chai": "img/lpp/chai.webp",
+  "chocalmondcroissant": "img/lpp/chocalmondcroissant.webp",
+  "choccroissant": "img/lpp/choccroissant.webp",
   "cinnamonroll": "img/lpp/cinnamonroll.jpg",
+  "croissant": "img/lpp/croissant.webp",
+  "dlcap": "img/lpp/dlcap.webp",
   "espresso": "img/lpp/espresso.webp",
+  "guavadanish": "img/lpp/guavadanish.webp",
   "hamcroissant": "img/lpp/hamcroissant.webp",
+  "hibiscus": "img/lpp/hibiscus.webp",
   "honeycinn": "img/lpp/honeycinn.jpg",
+  "hotchoc": "img/lpp/hotchoc.webp",
+  "hottea": "img/lpp/hottea.webp",
+  "icedamericano": "img/lpp/icedamericano.webp",
+  "icedlatte": "img/lpp/icedlatte.webp",
+  "icedmocha": "img/lpp/icedmocha.webp",
   "latte": "img/lpp/latte.webp",
+  "lavmatcha": "img/lpp/lavmatcha.jpg",
   "macchiato": "img/lpp/macchiato.webp",
   "maplecaramel": "img/lpp/maplecaramel.webp",
+  "matcha": "img/lpp/matcha.webp",
   "mocha": "img/lpp/mocha.webp",
   "parisian": "img/lpp/parisian.jpg",
-  "quiche": "img/lpp/quiche.webp"
+  "quiche": "img/lpp/quiche.webp",
+  "sbsmoothie": "img/lpp/sbsmoothie.jpg",
+  "strawmatchalatte": "img/lpp/strawmatchalatte.jpg",
+  "turnover": "img/lpp/turnover.webp"
  },
  "seed": {
   "almondjoy": "img/seed/almondjoy.jpg",
