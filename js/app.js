@@ -1,8 +1,10 @@
-/* On the Go — app logic. No build step, no framework. */
+/* On the Go — app logic. No build step, no framework.
+   Flow: map → tap a pin or search → Order here → that shop's menu → bag → pickup ticket. */
 (function () {
   'use strict';
   const D = window.OTG_DATA;
-  const STORAGE_KEY = 'onthego.v2';
+  const C = D.catalog;
+  const STORAGE_KEY = 'onthego.v3';
 
   /* ---------- helpers ---------- */
   const $ = (sel, root) => (root || document).querySelector(sel);
@@ -10,8 +12,9 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (n) => '$' + n.toFixed(2);
   const storeById = (id) => D.stores.find((s) => s.id === id);
-  const itemById = (id) => D.menu.find((m) => m.id === id);
   const uid = () => Math.random().toString(36).slice(2, 8);
+  const isDrink = (id) => C[id] && C[id].kind !== 'food';
+  const priceAt = (store, id) => { const r = store.menu.find((m) => m[0] === id); return r ? r[1] : null; };
 
   function load() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { return {}; }
@@ -21,19 +24,20 @@
   }
 
   /* ---------- state ---------- */
-  const saved = load();
   const state = Object.assign({
-    screen: 'home',
-    storeId: null,
+    screen: 'stores',
+    storeId: null,        /* shop open on the map sheet */
+    orderStoreId: null,   /* shop whose menu and bag you're ordering from */
     favorites: [],
     bag: [],
     orders: [],
-    beans: D.me.beans,
+    punches: D.me.punches,
+    freeDrinks: 0,
     pickupMode: 'store',
     pickupIn: 0,
     filter: 'all',
     query: ''
-  }, saved);
+  }, load());
 
   /* map projection: equirectangular around Boca Raton, 1 unit ≈ 2 m */
   const M = window.OTG_MAP;
@@ -45,7 +49,7 @@
   D.stores.forEach((s) => Object.assign(s, project(s.lng, s.lat)));
   Object.assign(D.me, project(D.me.lng, D.me.lat));
 
-  /* straight-line distance from the user, in miles */
+  /* straight-line distance from you, in miles */
   function distMi(s) {
     const R = 3958.8, toR = Math.PI / 180;
     const dLat = (s.lat - D.me.lat) * toR, dLng = (s.lng - D.me.lng) * toR;
@@ -53,59 +57,106 @@
     return 2 * R * Math.asin(Math.sqrt(a));
   }
   const walkMin = (s) => Math.max(1, Math.round(distMi(s) * 20));
+  /* under a mile: walking time; farther: a rough Boca drive time with lights */
+  const travel = (s) => distMi(s) < 1 ? walkMin(s) + ' min walk' : Math.round(distMi(s) * 2.6 + 3) + ' min drive';
   const sortedStores = () => D.stores.slice().sort((a, b) => distMi(a) - distMi(b));
-  const currentStore = () => storeById(state.storeId) || sortedStores()[0];
 
-  /* ---------- icons ---------- */
+  /* "6:30 AM – 7 PM" → open right now? */
+  function toMin(t) {
+    const m = t.trim().match(/(\d+)(?::(\d+))?\s*(AM|PM)/i);
+    if (!m) return 0;
+    let h = Number(m[1]) % 12;
+    if (m[3].toUpperCase() === 'PM') h += 12;
+    return h * 60 + Number(m[2] || 0);
+  }
+  function isOpen(s) {
+    const [a, b] = s.hours.split('–');
+    const now = new Date(), n = now.getHours() * 60 + now.getMinutes();
+    return n >= toMin(a) && n < toMin(b);
+  }
+  const closesAt = (s) => s.hours.split('–')[1].trim();
+
+  /* ---------- icons (1.75 stroke, drawn for this app) ---------- */
+  const sv = (d, extra) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"' + (extra || '') + '>' + d + '</svg>';
   const I = {
-    bean: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 5.8c3.6-3.6 9.4-3.6 12.4-.6 3 3 2.6 8.6-1 12.2s-9.2 4-12.2 1c-3-3-2.8-9 .8-12.6Z" fill="currentColor"/><path d="M7.5 7.5c2.2 1.6 3.6 4 3.6 6.2 0 1.8-.6 3.3-1.6 4.6" stroke="var(--paper)" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
-    cup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/></svg>',
-    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
-    map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11.5a7 7 0 0 0-14 0C5 14.5 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
-    menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/></svg>',
-    bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1 13H5Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
-    orders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
-    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
-    heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10Z"/></svg>',
-    heartFill: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10Z"/></svg>',
-    locate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
-    zoomIn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>',
-    zoomOut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 12h12"/></svg>',
-    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
-    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 7"/></svg>',
-    walk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="1.5"/><path d="m8 21 3-7 3 2 2 5"/><path d="M11 14 9 9l4-2 3 4 2-1"/></svg>',
-    chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
-    car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16 6.5 9h11L19 16"/><path d="M3 16h18v3H3Z"/><circle cx="7" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg>'
+    cup: sv('<path d="M5 8h11v6a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5Z"/><path d="M16 9.5h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.5c0 1 1 1.3 1 2.3M12 3.5c0 1 1 1.3 1 2.3"/>', ' stroke-width="2"'),
+    map: sv('<path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5V4l-6 2.5Z"/><path d="M9 4v13M15 6.5v13"/>'),
+    menu: sv('<path d="M5 8h11v6a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5Z"/><path d="M16 9.5h1.5a2.5 2.5 0 0 1 0 5H16"/>'),
+    bag: sv('<path d="M5.5 8h13l-1 12h-11Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'),
+    orders: sv('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6"/>'),
+    search: sv('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'),
+    heart: sv('<path d="M12 19.5s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 7.6a3.9 3.9 0 0 1 7 2.3c0 5.2-7 9.6-7 9.6Z"/>'),
+    heartFill: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 19.5s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 7.6a3.9 3.9 0 0 1 7 2.3c0 5.2-7 9.6-7 9.6Z"/></svg>',
+    locate: sv('<path d="M20 4 4 11l7 2 2 7Z"/>'),
+    plus: sv('<path d="M12 6v12M6 12h12"/>', ' stroke-width="2"'),
+    minus: sv('<path d="M6 12h12"/>', ' stroke-width="2"'),
+    close: sv('<path d="M6 6l12 12M18 6 6 18"/>', ' stroke-width="2"'),
+    check: sv('<path d="m5 12.5 4.5 4.5L19 7.5"/>', ' stroke-width="2.5"'),
+    arrow: sv('<path d="M5 12h14M13 6l6 6-6 6"/>')
   };
 
-  /* ---------- drink illustrations ---------- */
-  function art(item, cls) {
-    if (item.kind === 'food') return '<span class="food" aria-hidden="true">' + item.emoji + '</span>';
-    const c = item.color;
-    if (item.kind === 'hot') {
-      return '<svg viewBox="0 0 64 80" aria-hidden="true">' +
-        '<path d="M13 22h38l-5 50q-14 6-28 0Z" fill="#F4EDE1"/>' +
-        '<path d="M15.5 44h33l-1.6 16h-29.8Z" fill="' + c + '"/>' +
-        '<path d="M15.5 44h33l-.4 4h-32.2Z" fill="rgba(0,0,0,.12)"/>' +
-        '<rect x="9" y="14" width="46" height="9" rx="4" fill="#2C2A27"/>' +
-        '<rect x="20" y="9" width="24" height="6" rx="3" fill="#3D3B37"/>' +
-        '<path d="M24 5c0-3 3-3 3-6" stroke="#CFC8BB" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".8"/>' +
-        '<path d="M34 6c0-3 3-3 3-6" stroke="#CFC8BB" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".6"/>' +
-        '</svg>';
+  /* ---------- top-down drawings, like a coffee color chart ---------- */
+  const SAUCER = 'fill="var(--saucer)" stroke="var(--saucer-line)"';
+  const CUP = 'fill="var(--cup)" stroke="var(--saucer-line)"';
+  const HEART = '<path d="M32 39.5c-5.2-3.4-8-6.3-8-9.4a4 4 0 0 1 8-.9 4 4 0 0 1 8 .9c0 3.1-2.8 6-8 9.4Z" fill="rgba(255,246,234,.82)"/>';
+
+  function foodShape(def) {
+    const t = def.tint;
+    switch (def.shape) {
+      case 'croissant': return [[17, 39, 6, 7], [23, 31, 7, 8], [32, 27, 8, 9], [41, 31, 7, 8], [47, 39, 6, 7]].map((e) =>
+        '<ellipse cx="' + e[0] + '" cy="' + e[1] + '" rx="' + e[2] + '" ry="' + e[3] + '" fill="#D9A15B" stroke="#B57A3A" stroke-width="1"/>').join('') +
+        (t ? '<path d="M24 33q8-5 16 0" stroke="' + t + '" stroke-width="3" fill="none" stroke-linecap="round"/>' : '');
+      case 'cookie': return '<circle cx="32" cy="32" r="16" fill="#C99560" stroke="#A97A48"/>' +
+        [[26, 27], [36, 25], [39, 35], [29, 38], [33, 31], [23, 34]].map((p) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.2" fill="' + (t || '#4A2C1A') + '"/>').join('');
+      case 'muffin': return '<circle cx="32" cy="32" r="16" fill="#C98F55" stroke="#A8743F"/><path d="M22 30q10-8 20 0M24 37q8-5 16 0" stroke="#A8743F" fill="none"/>' +
+        [[27, 26], [37, 28], [31, 34], [38, 38], [25, 36]].map((p) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2" fill="' + (t || '#4B4A8C') + '"/>').join('');
+      case 'bagel': return '<circle cx="32" cy="32" r="17" fill="#D6A86A" stroke="#B5864B"/><circle cx="32" cy="32" r="5" fill="var(--saucer)" stroke="#B5864B"/>' +
+        [[25, 24], [39, 25], [42, 36], [30, 43], [22, 35], [35, 21]].map((p, i) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="1" fill="' + (i % 2 ? '#2A2A2A' : '#F4EEE2') + '"/>').join('');
+      case 'toast': return '<rect x="17" y="18" width="30" height="28" rx="6" fill="#D9AE6C" stroke="#B9864A" stroke-width="2"/>' +
+        '<ellipse cx="27" cy="30" rx="5" ry="3.5" fill="#9CBF5C"/><ellipse cx="37" cy="29" rx="5" ry="3.5" fill="#8DB24F"/><ellipse cx="31" cy="37" rx="5" ry="3.5" fill="#A6C76A"/>';
+      case 'bowl': return '<circle cx="32" cy="32" r="21" fill="#EFE9E1" stroke="var(--saucer-line)"/><circle cx="32" cy="32" r="17" fill="#5B2D52"/>' +
+        '<circle cx="27" cy="27" r="3.5" fill="#F1E3A6"/><circle cx="33" cy="25" r="3.5" fill="#F1E3A6"/><circle cx="38" cy="36" r="2.5" fill="#C23B4A"/><circle cx="34" cy="39" r="2.5" fill="#3E3A7A"/>' +
+        '<path d="M22 36h8" stroke="#C69A5B" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 3"/>';
+      case 'macaron': return [[24, 27, '#E9B4C0'], [40, 27, '#BFD8A8'], [32, 40, '#E8D39A']].map((m) =>
+        '<circle cx="' + m[0] + '" cy="' + m[1] + '" r="8.5" fill="' + m[2] + '" stroke="rgba(0,0,0,.12)"/><circle cx="' + m[0] + '" cy="' + m[1] + '" r="5.5" fill="none" stroke="rgba(255,255,255,.5)"/>').join('');
+      case 'crepe': return '<path d="M16 20h32L32 48Z" fill="#E8C48A" stroke="#C99A58" stroke-linejoin="round"/><path d="M22 26q10 6 20 0" stroke="#5A3622" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+      case 'cannoli': return '<rect x="14" y="27" width="36" height="11" rx="5.5" fill="#D9A15B" stroke="#B57A3A" transform="rotate(-18 32 32)"/>' +
+        '<circle cx="15.5" cy="38" r="5" fill="#F4EBDC"/><circle cx="48.5" cy="26" r="5" fill="#F4EBDC"/><circle cx="15.5" cy="38" r="1.2" fill="#7BA05B"/><circle cx="48.5" cy="26" r="1.2" fill="#7BA05B"/>';
+      case 'tart': return '<circle cx="32" cy="32" r="17" fill="#D9A15B" stroke="#B57A3A"/><circle cx="32" cy="32" r="13" fill="#F3E3C3"/>' +
+        [[27, 28], [37, 28], [32, 35], [26, 37], [38, 37]].map((p) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="3.2" fill="' + (t || '#C8475A') + '"/>').join('');
+      case 'loaf': return '<rect x="18" y="21" width="28" height="22" rx="5" fill="#9E6B3C"/><rect x="21" y="24" width="22" height="16" rx="3" fill="#D8B07A"/><circle cx="27" cy="30" r="1.3" fill="#F6F0E4"/><circle cx="36" cy="34" r="1.3" fill="#F6F0E4"/>';
+      case 'empanada': return '<path d="M15 38a17 17 0 0 1 34 0Z" fill="#D8A05A" stroke="#B57A3A"/>' + [18, 23, 28, 33, 38, 43].map((x) => '<circle cx="' + (x + 1) + '" cy="37" r="1.2" fill="#B57A3A"/>').join('');
+      case 'sandwich': return '<rect x="12" y="24" width="40" height="15" rx="7.5" fill="#D9A15B" stroke="#B57A3A" transform="rotate(-12 32 32)"/><path d="M16 33q8-4 16-1t16-4" stroke="#7BA05B" stroke-width="2" fill="none" transform="rotate(-12 32 32)"/>';
+      case 'cake': return '<rect x="19" y="19" width="26" height="26" rx="3" fill="#8A5A3C"/>' + [[24, 25], [31, 23], [38, 27], [26, 33], [35, 35], [29, 40], [39, 40]].map((p) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="1" fill="#4A2C1A"/>').join('');
+      default: return '';
     }
-    const whip = item.kind === 'frozen'
-      ? '<circle cx="24" cy="24" r="7" fill="#FFF"/><circle cx="40" cy="24" r="7" fill="#FFF"/><circle cx="32" cy="18" r="8" fill="#FFF"/><path d="M26 16q6-8 12 0" stroke="' + c + '" stroke-width="2" fill="none" stroke-linecap="round"/>'
-      : '<path d="M11 24Q32 6 53 24Z" fill="#E9F0EC" stroke="#CDD8D2" stroke-width="1.5"/>' +
-        '<rect x="35" y="0" width="5" height="34" rx="2" fill="#6F4E37" transform="rotate(7 37 17)"/>';
-    return '<svg viewBox="0 0 64 80" aria-hidden="true">' +
-      '<path d="M13 24h38l-5 48q-14 6-28 0Z" fill="#FFFFFF" stroke="#CFD8D3" stroke-width="1.5"/>' +
-      '<path d="M15.5 36h33l-3.2 36q-13 5.5-26.6 0Z" fill="' + c + '" opacity=".92"/>' +
-      '<rect x="20" y="42" width="9" height="9" rx="2" fill="#FFF" opacity=".55"/>' +
-      '<rect x="34" y="50" width="9" height="9" rx="2" fill="#FFF" opacity=".5"/>' +
-      '<rect x="24" y="58" width="9" height="9" rx="2" fill="#FFF" opacity=".45"/>' +
-      whip +
-      '</svg>';
+  }
+
+  function art(id, size) {
+    const def = C[id], c = def.color;
+    const cls = 'art' + (size ? ' art--' + size : '');
+    let g = '';
+    if (def.kind === 'food') {
+      g = '<circle cx="32" cy="32" r="30" ' + SAUCER + '/><circle cx="32" cy="32" r="23" fill="none" stroke="var(--saucer-line)"/>' + foodShape(def);
+    } else if (def.kind === 'espresso') {
+      g = '<circle cx="32" cy="32" r="25" ' + SAUCER + '/><rect x="42" y="28.5" width="9" height="7" rx="3.5" ' + CUP + '/><circle cx="32" cy="32" r="15" ' + CUP + '/>' +
+        '<circle cx="32" cy="32" r="12" fill="' + c + '"/>' + (def.milk ? '<circle cx="32" cy="32" r="5" fill="rgba(255,246,234,.8)"/>' : '<circle cx="32" cy="32" r="12" fill="none" stroke="rgba(200,148,90,.55)" stroke-width="2"/>');
+    } else if (def.kind === 'hot' || def.kind === 'black') {
+      g = '<circle cx="32" cy="32" r="30" ' + SAUCER + '/><rect x="49" y="28" width="12" height="8" rx="4" ' + CUP + '/><circle cx="32" cy="32" r="21" ' + CUP + '/>' +
+        '<circle cx="32" cy="32" r="17.5" fill="' + c + '"/>' +
+        (def.kind === 'hot' ? HEART : '<path d="M22 26a12 12 0 0 1 10-6" stroke="rgba(255,255,255,.18)" stroke-width="2.5" fill="none" stroke-linecap="round"/>');
+    } else if (def.kind === 'affogato') {
+      g = '<circle cx="32" cy="32" r="25" fill="rgba(255,255,255,.6)" stroke="#CBD5D8" stroke-width="1.5"/><circle cx="32" cy="32" r="14" fill="#F4ECDF"/>' +
+        '<path d="M24 28q8-6 14 2t-4 10q-6 2-10-4" fill="' + c + '" opacity=".85"/>';
+    } else {
+      const milk = def.milk ? '<path d="M20 36q6-8 12-2t12-4" stroke="rgba(255,255,255,.55)" stroke-width="3" fill="none" stroke-linecap="round"/>' : '';
+      const top = def.kind === 'frozen'
+        ? '<circle cx="32" cy="32" r="13" fill="rgba(255,255,255,.35)"/><circle cx="32" cy="32" r="8" fill="rgba(255,255,255,.35)"/>'
+        : '<rect x="20" y="21" width="9" height="9" rx="2" fill="rgba(255,255,255,.5)" transform="rotate(14 24 25)"/><rect x="33" y="33" width="9" height="9" rx="2" fill="rgba(255,255,255,.45)" transform="rotate(-10 37 37)"/><rect x="21" y="34" width="8" height="8" rx="2" fill="rgba(255,255,255,.4)"/>';
+      g = '<circle cx="32" cy="32" r="26" fill="rgba(255,255,255,.55)" stroke="#C7D2D6" stroke-width="1.5"/><circle cx="32" cy="32" r="22.5" fill="' + c + '"/>' +
+        milk + top + '<circle cx="41" cy="23" r="3.4" fill="#1E1612"/><circle cx="41" cy="23" r="1.6" fill="#F4F1EC"/>';
+    }
+    return '<div class="' + cls + '"><svg viewBox="0 0 64 64" aria-hidden="true">' + g + '</svg></div>';
   }
 
   /* ---------- navigation ---------- */
@@ -113,21 +164,19 @@
     state.screen = screen;
     $$('.screen').forEach((el) => el.classList.toggle('is-active', el.dataset.screen === screen));
     $$('.tab').forEach((el) => el.classList.toggle('is-active', el.dataset.go === screen));
-    render(screen);
+    ({ stores: renderStores, menu: renderMenu, bag: renderBag, orders: renderOrders })[screen]();
+    renderTopbar();
     save();
   }
 
-  function render(screen) {
-    ({ home: renderHome, stores: renderStores, menu: renderMenu, bag: renderBag, orders: renderOrders })[screen]();
-    renderTopbar();
-  }
-
   function renderTopbar() {
-    $('#beansCount').textContent = state.beans;
-    const n = state.bag.reduce((t, l) => t + l.qty, 0);
+    const n = state.punches % D.rewardAt;
+    $('#miniPunch').innerHTML = Array.from({ length: D.rewardAt }, (_, i) => '<i' + (i < n ? ' class="on"' : '') + '></i>').join('');
+    $('#punchText').textContent = n + '/' + D.rewardAt;
+    const q = state.bag.reduce((t, l) => t + l.qty, 0);
     const b = $('#bagBadge');
-    b.textContent = n;
-    b.hidden = n === 0;
+    b.textContent = q;
+    b.hidden = q === 0;
   }
 
   let toastTimer;
@@ -136,55 +185,7 @@
     t.textContent = msg;
     t.classList.add('is-on');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('is-on'), 1800);
-  }
-
-  /* ---------- home ---------- */
-  function greeting() {
-    const h = new Date().getHours();
-    return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  }
-
-  function renderHome() {
-    const s = currentStore();
-    const active = state.orders.find((o) => orderStatus(o) !== 'done');
-    const last = state.orders[0];
-    const toReward = D.rewardAt - (state.beans % D.rewardAt);
-    const pct = ((state.beans % D.rewardAt) / D.rewardAt) * 100;
-    const featured = ['shakerato', 'flatwhite', 'frmocha', 'matcha', 'pastelito', 'coldbrew'].map(itemById);
-
-    $('[data-screen="home"]').innerHTML =
-      '<div class="greeting"><h1>' + greeting() + ' ☕</h1><p>' + (active ? 'Your order is on the bar. ' : 'What are we picking up today?') + '</p></div>' +
-
-      '<div class="rewards">' +
-        '<div class="eyebrow" style="color:rgba(255,255,255,.7)">Bean bank</div>' +
-        '<div class="big">' + state.beans + '<span>' + I.bean + '</span></div>' +
-        '<div class="meter"><i style="width:' + pct.toFixed(0) + '%"></i></div>' +
-        '<div class="meta"><span>' + toReward + ' beans to a free drink</span><span>' + D.beansPerDollar + ' bean per $1</span></div>' +
-      '</div>' +
-
-      (active ? '<div class="section"><button class="card order-card" data-go="orders" style="width:100%;text-align:left">' +
-        '<div class="row"><div class="grow"><div class="eyebrow">' + esc(statusLabel(orderStatus(active))) + ' · ' + esc(storeById(active.storeId).name) + '</div>' +
-        '<div class="code">' + active.code + '</div><div class="small muted">Show this code at pickup</div></div>' + I.chevron.replace('<svg', '<svg width="22" height="22"') + '</div></button></div>' : '') +
-
-      '<div class="section"><div class="section-head"><h2>Pick up at</h2><button class="link" data-go="stores">Change</button></div>' +
-        '<div class="card pickup-card"><div class="store-thumb">' + I.map + '</div>' +
-        '<div class="grow"><h3>' + esc(s.name) + '</h3><div class="small muted">' + esc(s.address) + ' · ' + distMi(s).toFixed(1) + ' mi · ' + s.wait + ' min wait</div></div>' +
-        '<button class="btn btn--sm" data-order-at="' + s.id + '">Order</button></div></div>' +
-
-      (last ? '<div class="section"><div class="section-head"><h2>Order again</h2><button class="link" data-go="orders">History</button></div>' +
-        '<div class="card reorder"><div class="mini-art">' + art(itemById(last.lines[0].itemId)) + '</div>' +
-        '<div class="grow"><h3 style="font-size:14px">' + esc(lineTitle(last.lines[0])) + (last.lines.length > 1 ? ' + ' + (last.lines.length - 1) + ' more' : '') + '</h3>' +
-        '<div class="small muted">' + esc(storeById(last.storeId).name) + ' · ' + money(last.total) + '</div></div>' +
-        '<button class="btn btn--ghost btn--sm" data-reorder="' + last.id + '">Reorder</button></div></div>' : '') +
-
-      '<div class="section"><div class="section-head"><h2>Featured</h2><button class="link" data-go="menu">Full menu</button></div>' +
-        '<div class="h-scroll">' + featured.map((m) =>
-          '<button class="feat" data-item="' + m.id + '"><div class="art">' + art(m) + '</div><h3>' + esc(m.name) + '</h3><div class="price">' + money(m.price) + '</div></button>'
-        ).join('') + '</div></div>' +
-
-      '<div class="section"><div class="card promo"><div class="art">🌤️</div><div class="grow"><h3>Afternoon pick-me-up</h3>' +
-        '<p class="small muted">Double beans on any iced coffee ordered ahead between 2 and 5 PM.</p></div></div></div>';
+    toastTimer = setTimeout(() => t.classList.remove('is-on'), 2000);
   }
 
   /* ---------- map ---------- */
@@ -225,7 +226,7 @@
       '<path d="' + line(M.runway) + '" class="runway" stroke-width="14"/>' +
       casing + roads + roadNames + areaLabels + labels +
       '<g id="mapPins"></g>' +
-      '<g id="mapMe"><circle class="me-ring" cx="' + D.me.x + '" cy="' + D.me.y + '" r="26"/><circle class="me-dot" cx="' + D.me.x + '" cy="' + D.me.y + '" r="8"/></g>';
+      '<g id="mapMe"><circle class="me-ring" cx="' + D.me.x + '" cy="' + D.me.y + '" r="22"/><circle class="me-dot" cx="' + D.me.x + '" cy="' + D.me.y + '" r="7"/></g>';
 
     map.vb.x = D.me.x - map.vb.w / 2;
     map.vb.y = D.me.y - map.vb.w / 2;
@@ -285,7 +286,7 @@
   }
 
   function centerOn(x, y, animate) {
-    const tx = x - map.vb.w / 2, ty = y - map.vb.h / 2 + (animate ? map.vb.h * 0.18 : 0);
+    const tx = x - map.vb.w / 2, ty = y - map.vb.h / 2 + (animate ? map.vb.h * (state.storeId ? 0.28 : 0.18) : 0);
     if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { map.vb.x = tx; map.vb.y = ty; applyViewBox(); return; }
     const sx = map.vb.x, sy = map.vb.y, t0 = performance.now();
     const step = (t) => {
@@ -297,67 +298,79 @@
     requestAnimationFrame(step);
   }
 
+  /* ---------- map: list, pins, shop sheet ---------- */
   function visibleStores() {
     const q = state.query.trim().toLowerCase();
     return sortedStores().filter((s) => {
       if (state.filter === 'fav' && !state.favorites.includes(s.id)) return false;
       if (state.filter === 'curbside' && !s.pickup.includes('curbside')) return false;
-      if (state.filter === 'quiet' && s.busy !== 'Quiet') return false;
-      if (q && !(s.name + ' ' + s.address).toLowerCase().includes(q)) return false;
+      if (state.filter === 'quiet' && s.wait > 3) return false;
+      if (state.filter === 'open' && !isOpen(s)) return false;
+      if (q) {
+        const hay = (s.name + ' ' + s.address + ' ' + s.menu.map((m) => C[m[0]].name).join(' ')).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
   }
 
   function renderPins() {
     const list = visibleStores();
-    const g = $('#mapPins');
-    g.innerHTML = list.map((s, i) => {
+    $('#mapPins').innerHTML = list.map((s, i) => {
       const sel = s.id === state.storeId, fav = state.favorites.includes(s.id);
       return '<g class="pin' + (sel ? ' is-selected' : '') + (fav ? ' is-fav' : '') + '" data-store="' + s.id + '" data-x="' + s.x + '" data-y="' + s.y + '">' +
-        '<circle class="pin-ring" r="20"/>' +
-        '<path class="pin-body" d="M0 4C-9 -6 -14 -12 -14 -20a14 14 0 0 1 28 0c0 8-5 14-14 24Z" transform="translate(0 -2)"/>' +
-        '<text class="pin-glyph" y="-16" text-anchor="middle" font-size="11" font-weight="800" font-family="Outfit, sans-serif">' + (i + 1) + '</text>' +
-        (sel ? '<text class="pin-label" y="18" text-anchor="middle">' + esc(s.name) + '</text>' : '') +
+        '<circle class="pin-ring" r="19" cy="-19"/>' +
+        '<path class="pin-body" d="M0 2C-8 -7 -13 -13 -13 -20a13 13 0 0 1 26 0c0 7-5 13-13 22Z"/>' +
+        '<text class="pin-glyph" y="-16" text-anchor="middle" font-size="11" font-weight="600">' + (i + 1) + '</text>' +
+        (sel ? '<text class="pin-label" y="17" text-anchor="middle">' + esc(s.name) + '</text>' : '') +
         '</g>';
     }).join('');
     applyViewBox();
   }
 
-  function busyPill(s) {
-    const cls = s.busy === 'Quiet' ? 'pill--ok' : s.busy === 'Busy' ? 'pill--busy' : 'pill--warn';
-    return '<span class="pill ' + cls + '">' + s.busy + ' · ' + s.wait + ' min</span>';
-  }
+  const statusLine = (s) => '<span class="status status--' + s.busy + '">' + s.busy + ' · ' + s.wait + ' min</span>';
+
+  function bagStore() { return state.bag.length ? storeById(state.orderStoreId) : null; }
 
   function renderStores() {
     buildMap();
     renderPins();
     const list = visibleStores();
     const s = storeById(state.storeId);
-    const body = $('#sheetBody');
-    const head = $('#sheetHead');
+    const body = $('#sheetBody'), head = $('#sheetHead');
     $('#storeSheet').classList.toggle('is-tall', !!s);
-    $$('.map-filters .chip').forEach((c) => c.classList.toggle('is-on', c.dataset.filter === state.filter));
+    $$('.map-filters [data-filter]').forEach((c) => c.classList.toggle('is-on', c.dataset.filter === state.filter));
 
     if (s) {
       const fav = state.favorites.includes(s.id);
-      head.innerHTML = '<h2>Store</h2><button class="icon-btn" data-deselect aria-label="Back to list" style="box-shadow:none;background:var(--surface-2)">' + I.close + '</button>';
+      const other = bagStore() && bagStore().id !== s.id ? bagStore() : null;
+      const sig = s.signature;
+      head.innerHTML = '<span class="label">' + (sortedStores().indexOf(s) + 1) + ' of ' + D.stores.length + ' nearby</span><button class="icon-btn" data-deselect aria-label="Back to the list">' + I.close + '</button>';
       body.innerHTML =
-        '<div class="store-detail"><h2>' + esc(s.name) + '</h2><div class="addr">' + esc(s.address) + ' · ' + distMi(s).toFixed(1) + ' mi · ' + walkMin(s) + ' min walk</div>' +
-        '<div class="facts">' + busyPill(s) + '<span class="pill">Open ' + s.open + ' – ' + s.close + '</span><span class="pill">★ ' + s.rating.toFixed(1) + '</span>' +
-        s.pickup.map((p) => '<span class="pill">' + D.pickupModes.find((m) => m.id === p).name + '</span>').join('') + '</div>' +
-        '<p class="tagline">“' + esc(s.tagline) + '”</p>' +
-        '<div class="special" style="margin-top:12px"><div class="art">' + art(itemById(s.special)) + '</div><div class="grow"><div class="eyebrow">Store special</div><h3>' + esc(itemById(s.special).name) + '</h3></div>' +
-        '<button class="btn btn--sm btn--ghost" data-item="' + s.special + '" data-item-store="' + s.id + '">Add</button></div>' +
-        '<div class="actions"><button class="btn" data-order-at="' + s.id + '">Order here</button>' +
-        '<button class="icon-btn' + (fav ? ' is-on' : '') + '" data-fav="' + s.id + '" aria-label="Favorite">' + (fav ? I.heartFill : I.heart) + '</button></div></div>';
+        '<div class="store-detail"><h2>' + esc(s.name) + '</h2>' +
+        '<div class="addr">' + esc(s.address) + '</div>' +
+        '<div class="facts">' +
+          '<div><div class="label">Wait now</div><div class="v">' + statusLine(s) + '</div></div>' +
+          '<div><div class="label">Hours</div><div class="v">' + s.hours + (isOpen(s) ? '' : ' <span class="faint small">· closed</span>') + '</div></div>' +
+          '<div><div class="label">Distance</div><div class="v mono">' + distMi(s).toFixed(1) + ' mi · ' + travel(s) + '</div></div>' +
+          '<div><div class="label">Pickup</div><div class="v">' + s.pickup.map((p) => p === 'store' ? 'Counter' : 'Curbside').join(', ') + '</div></div>' +
+        '</div>' +
+        '<p class="about">' + esc(s.about) + '</p>' +
+        '<button class="special-row" data-item="' + sig + '" data-item-store="' + s.id + '" style="width:100%">' + art(sig, 'sm') +
+          '<div class="grow"><div class="label">Known for</div><h3>' + esc(C[sig].name) + '</h3></div><span class="mono">' + money(priceAt(s, sig)) + '</span></button>' +
+        '<div class="btn-row"><button class="btn" data-order-at="' + s.id + '">Order here ' + I.arrow.replace('<svg', '<svg width="18" height="18"') + '</button>' +
+        '<button class="icon-btn' + (fav ? ' is-on' : '') + '" data-fav="' + s.id + '" aria-label="' + (fav ? 'Remove from saved' : 'Save this shop') + '">' + (fav ? I.heartFill : I.heart) + '</button></div>' +
+        (other ? '<p class="small muted" style="margin-top:10px">Your bag has items from ' + esc(other.name) + '. Ordering here starts a new bag.</p>' : '') +
+        '</div>';
     } else {
-      head.innerHTML = '<h2>' + (state.filter === 'all' && !state.query ? 'Nearby' : list.length + ' match' + (list.length === 1 ? '' : 'es')) + '</h2><span class="small muted">' + list.length + ' store' + (list.length === 1 ? '' : 's') + '</span>';
+      const q = state.query.trim();
+      head.innerHTML = '<h2>' + (q ? 'Results for “' + esc(q) + '”' : 'Coffee near you') + '</h2><span class="label">' + list.length + ' shop' + (list.length === 1 ? '' : 's') + '</span>';
       body.innerHTML = list.length ? list.map((st, i) =>
-        '<button class="store-row" data-select="' + st.id + '"><div class="n">' + (i + 1) + '</div>' +
-        '<div class="grow"><h3>' + esc(st.name) + (state.favorites.includes(st.id) ? ' <span style="color:var(--danger)">♥</span>' : '') + '</h3>' +
-        '<div class="sub">' + busyPill(st) + '<span>' + esc(st.address) + '</span></div></div>' +
-        '<div class="dist">' + distMi(st).toFixed(1) + ' mi<br><span class="small muted" style="font-weight:400">' + walkMin(st) + ' min</span></div></button>'
-      ).join('') : '<div class="empty"><div class="art">🗺️</div>No stores match. Try clearing the filter.</div>';
+        '<button class="list-row store-row" data-select="' + st.id + '"><span class="n">' + (i + 1) + '</span>' +
+        '<div class="grow"><h3>' + esc(st.name) + (state.favorites.includes(st.id) ? ' <span style="color:var(--busy)" aria-label="saved">♥</span>' : '') + '</h3>' +
+        '<div class="sub">' + (isOpen(st) ? statusLine(st) : '<span class="status">Closed</span>') + '<span>' + (isOpen(st) ? 'Open till ' + closesAt(st) : 'Hours ' + st.hours) + '</span></div></div>' +
+        '<div class="dist">' + distMi(st).toFixed(1) + ' mi<small>' + travel(st) + '</small></div></button>'
+      ).join('') : '<div class="empty"><h2>No shops match</h2><p>Try a different name or clear the filter.</p></div>';
     }
   }
 
@@ -369,250 +382,307 @@
     if (pan) centerOn(s.x, s.y, true);
   }
 
-  /* ---------- menu ---------- */
-  let menuCat = 'hot';
-  function renderMenu() {
-    const s = currentStore();
-    state.storeId = s.id;
-    const special = itemById(s.special);
-    $('[data-screen="menu"]').innerHTML =
-      '<div class="menu-store"><div class="store-thumb">' + I.map + '</div><div class="grow"><div class="eyebrow">Ordering from</div><h3>' + esc(s.name) + '</h3>' +
-      '<div class="small">' + distMi(s).toFixed(1) + ' mi · ready in about ' + s.wait + ' min</div></div><button class="link" data-go="stores">Change</button></div>' +
-      '<div class="special"><div class="art">' + art(special) + '</div><div class="grow"><div class="eyebrow">' + esc(s.name.split(' ')[0]) + ' special</div><h3>' + esc(special.name) + '</h3><div class="small muted">' + money(special.price) + '</div></div>' +
-      '<button class="btn btn--sm" data-item="' + special.id + '">Add</button></div>' +
-      '<div class="cat-tabs">' + D.categories.map((c) => '<button class="cat-tab' + (c.id === menuCat ? ' is-on' : '') + '" data-cat="' + c.id + '">' + c.name + '</button>').join('') + '</div>' +
-      D.categories.map((c) => '<div class="menu-group" id="cat-' + c.id + '"><h2>' + c.name + '</h2>' +
-        D.menu.filter((m) => m.cat === c.id).map((m) =>
-          '<button class="menu-item" data-item="' + m.id + '"><div class="art">' + art(m) + '</div><div class="grow"><h3>' + esc(m.name) + '</h3><div class="desc">' + esc(m.desc) + '</div>' +
-          '<div class="meta">' + money(m.price) + (m.kind === 'food' ? '' : ' · Small') + ' · ' + m.cal + ' cal</div></div><div class="add">' + I.plus + '</div></button>'
-        ).join('') + '</div>').join('');
+  /* Choosing a shop to order from. A bag belongs to one shop, like a real ticket. */
+  function startOrderAt(id) {
+    if (state.bag.length && state.orderStoreId !== id) {
+      const old = storeById(state.orderStoreId);
+      state.bag = [];
+      toast('Started a new bag at ' + storeById(id).name + (old ? '. Cleared ' + old.name : ''));
+    }
+    state.orderStoreId = id;
+    menuCat = null;
+    go('menu');
+    $('[data-screen="menu"]').scrollTop = 0;
   }
 
-  /* ---------- item modal ---------- */
+  /* ---------- menu for one shop ---------- */
+  let menuCat = null;
+  function renderMenu() {
+    const el = $('[data-screen="menu"]');
+    const s = storeById(state.orderStoreId);
+    if (!s) {
+      el.innerHTML = '<div class="empty"><h2>Pick a shop first</h2><p>Tap a pin on the map or search for a shop, then tap Order here.</p><button class="btn" data-go="stores">Open the map</button></div>';
+      return;
+    }
+    const cats = D.categories.filter((c) => s.menu.some((m) => C[m[0]].cat === c.id));
+    if (!menuCat || !cats.find((c) => c.id === menuCat)) menuCat = cats[0].id;
+    el.innerHTML =
+      '<div class="menu-store"><div class="grow"><div class="label">Ordering from</div><h3>' + esc(s.name) + '</h3>' +
+        '<div class="small">' + esc(s.address) + ' · <span class="mono">' + distMi(s).toFixed(1) + ' mi</span> · ready in about ' + s.wait + ' min</div></div>' +
+        '<button class="link" data-go="stores">Change shop</button></div>' +
+      '<div class="cat-tabs">' + cats.map((c) => '<button class="cat-tab' + (c.id === menuCat ? ' is-on' : '') + '" data-cat="' + c.id + '">' + c.name + '</button>').join('') + '</div>' +
+      cats.map((c) => '<div class="menu-group" id="cat-' + c.id + '"><h2>' + c.name + '</h2>' +
+        s.menu.filter((m) => C[m[0]].cat === c.id).map((m) => {
+          const def = C[m[0]];
+          return '<button class="list-row" data-item="' + m[0] + '">' + art(m[0]) +
+            '<div class="grow"><h3>' + esc(def.name) + (m[0] === s.signature ? ' <span class="label" style="margin-left:4px">Known for</span>' : '') + '</h3><div class="desc">' + esc(def.desc) + '</div></div>' +
+            '<span class="price">' + money(m[1]) + '</span></button>';
+        }).join('') + '</div>').join('') +
+      '<p class="pad small faint" style="padding-top:12px">Menu from ' + esc(s.name) + '. Prices may differ in store.</p>';
+  }
+
+  /* ---------- item sheet ---------- */
   let draft = null;
-  function openItem(id, qtyPreset) {
-    const m = itemById(id);
-    draft = { itemId: id, size: m.kind === 'food' ? null : 'small', milk: 'whole', shots: 0, extras: [], qty: qtyPreset || 1 };
+  function openItem(id) {
+    const s = storeById(state.orderStoreId);
+    const def = C[id];
+    draft = { itemId: id, storeId: s.id, base: priceAt(s, id), size: def.sized ? 'reg' : null, milk: def.milk ? 'whole' : null, shots: 0, syrups: [], warm: false, qty: 1 };
     renderModal();
     $('#itemModal').classList.add('is-open');
   }
   function closeModal() { $('#itemModal').classList.remove('is-open'); draft = null; }
 
   function linePrice(l) {
-    const m = itemById(l.itemId);
-    let p = m.price;
-    if (l.size) p += D.sizes.find((s) => s.id === l.size).delta;
+    const s = storeById(l.storeId);
+    let p = l.base;
+    if (l.size) p += D.sizes.find((z) => z.id === l.size).delta;
     if (l.milk) p += D.milks.find((k) => k.id === l.milk).delta;
-    p += (l.shots || 0) * D.shotPrice;
-    (l.extras || []).forEach((x) => { p += D.extras.find((e) => e.id === x).delta; });
+    p += (l.shots || 0) * s.shot + (l.syrups || []).length * s.syrup;
     return p;
   }
   function lineTitle(l) {
-    const m = itemById(l.itemId);
-    return (l.size ? D.sizes.find((s) => s.id === l.size).name + ' ' : '') + m.name;
+    return (l.size === 'lg' ? 'Large ' : '') + C[l.itemId].name;
   }
   function lineMods(l) {
     const parts = [];
     if (l.milk && l.milk !== 'whole') parts.push(D.milks.find((k) => k.id === l.milk).name + ' milk');
     if (l.shots) parts.push('+' + l.shots + ' shot' + (l.shots > 1 ? 's' : ''));
-    (l.extras || []).forEach((x) => parts.push(D.extras.find((e) => e.id === x).name));
-    return parts.join(' · ');
+    (l.syrups || []).forEach((x) => parts.push(D.syrups.find((y) => y.id === x).name));
+    if (l.warm) parts.push('Warmed');
+    return parts.join(', ');
   }
 
   function renderModal() {
-    const m = itemById(draft.itemId);
-    const drink = m.kind !== 'food';
-    const sizes = D.sizes;
+    const def = C[draft.itemId], s = storeById(draft.storeId);
+    const drink = def.kind !== 'food';
+    const check = (on, attr, label, note) => '<button class="check-row' + (on ? ' is-on' : '') + '" ' + attr + ' role="checkbox" aria-checked="' + on + '"><span class="lbl">' + label + (note ? '<small>' + note + '</small>' : '') + '</span><span class="box">' + I.check + '</span></button>';
     $('#modalBody').innerHTML =
-      '<div class="modal-hero"><div class="art">' + art(m) + '</div><div class="grow"><h2>' + esc(m.name) + '</h2><p class="desc">' + esc(m.desc) + '</p><p class="small muted" style="margin-top:6px">' + m.cal + ' cal</p></div></div>' +
-      (drink ? '<div class="opt"><h3>Size</h3><div class="size-grid">' + sizes.map((s) =>
-        '<button class="size' + (s.id === draft.size ? ' is-on' : '') + '" data-size="' + s.id + '"><i class="cup" style="height:' + (10 + s.oz) + 'px"></i>' + s.name + '<small>' + s.oz + ' oz</small></button>'
-      ).join('') + '</div></div>' +
-      (m.id === 'batch' || m.id === 'coldbrew' || m.id === 'tonic' || m.id === 'hibiscus' ? '' : '<div class="opt"><h3>Milk</h3><div class="chip-row">' + D.milks.map((k) =>
-        '<button class="chip' + (k.id === draft.milk ? ' is-on' : '') + '" data-milk="' + k.id + '">' + k.name + (k.delta ? ' +' + money(k.delta).slice(1) : '') + '</button>'
-      ).join('') + '</div></div>') +
-      '<div class="opt"><h3>Customize</h3>' +
-      '<div class="toggle-row"><div class="lbl">Espresso shots<small>+' + money(D.shotPrice) + ' each</small></div><div class="stepper"><button data-shots="-1" aria-label="Fewer shots">−</button><span>' + draft.shots + '</span><button data-shots="1" aria-label="More shots">+</button></div></div>' +
-      D.extras.map((x) => '<div class="toggle-row"><div class="lbl">' + x.name + (x.delta ? '<small>+' + money(x.delta) + '</small>' : '<small>Free</small>') + '</div><button class="switch' + (draft.extras.includes(x.id) ? ' is-on' : '') + '" data-extra="' + x.id + '" role="switch" aria-checked="' + draft.extras.includes(x.id) + '" aria-label="' + x.name + '"></button></div>').join('') +
-      '</div>' : '') +
-      '<div class="opt"><h3>Quantity</h3><div class="stepper"><button data-qty="-1" aria-label="Fewer">−</button><span>' + draft.qty + '</span><button data-qty="1" aria-label="More">+</button></div></div>';
-    $('#modalTotal').textContent = money(linePrice(draft) * draft.qty);
+      '<div class="item-hero">' + art(draft.itemId, 'lg') + '<div class="grow"><div class="label">' + esc(s.name) + '</div><h2>' + esc(def.name) + '</h2><p class="desc">' + esc(def.desc) + '</p><p class="cal">' + def.cal + ' cal · ' + money(draft.base) + '</p></div></div>' +
+      (def.sized ? '<div class="opt"><div class="label">Size</div><div class="seg">' + D.sizes.map((z) =>
+        '<button class="' + (z.id === draft.size ? 'is-on' : '') + '" data-size="' + z.id + '">' + z.name + '<small>' + z.oz + ' oz' + (z.delta ? ' · +' + money(z.delta) : '') + '</small></button>').join('') + '</div></div>' : '') +
+      (def.milk ? '<div class="opt"><div class="label">Milk</div><div class="opts">' + D.milks.map((k) =>
+        '<button class="opt-btn' + (k.id === draft.milk ? ' is-on' : '') + '" data-milk="' + k.id + '">' + k.name + (k.delta ? '<small>+' + money(k.delta) + '</small>' : '') + '</button>').join('') + '</div></div>' : '') +
+      (drink && (def.coffee || def.milk) ? '<div class="opt"><div class="label">Extras</div>' +
+        (def.coffee ? '<div class="check-row"><span class="lbl">Extra shot<small>+' + money(s.shot) + ' each</small></span><span class="stepper"><button data-shots="-1" aria-label="Fewer shots">−</button><span>' + draft.shots + '</span><button data-shots="1" aria-label="More shots">+</button></span></div>' : '') +
+        D.syrups.map((y) => check(draft.syrups.includes(y.id), 'data-syrup="' + y.id + '"', y.name + ' syrup', '+' + money(s.syrup))).join('') + '</div>' : '') +
+      (def.warm ? '<div class="opt">' + check(draft.warm, 'data-warm', 'Warm it up', 'free') + '</div>' : '');
+    $('#modalFoot').innerHTML = '<span class="stepper"><button data-qty="-1" aria-label="Fewer">−</button><span>' + draft.qty + '</span><button data-qty="1" aria-label="More">+</button></span>' +
+      '<button class="btn" data-add>Add to bag · <span class="mono">' + money(linePrice(draft) * draft.qty) + '</span></button>';
   }
 
   function addToBag() {
-    const key = JSON.stringify([draft.itemId, draft.size, draft.milk, draft.shots, draft.extras.slice().sort()]);
+    const key = JSON.stringify([draft.itemId, draft.size, draft.milk, draft.shots, draft.syrups.slice().sort(), draft.warm]);
     const existing = state.bag.find((l) => l.key === key);
     if (existing) existing.qty += draft.qty;
     else state.bag.push(Object.assign({ id: uid(), key }, draft));
+    const name = C[draft.itemId].name;
     save();
     closeModal();
     renderTopbar();
-    toast('Added to bag');
+    toast(name + ' added to your bag');
     if (state.screen === 'bag') renderBag();
   }
 
-  /* ---------- bag ---------- */
+  /* ---------- bag: pickup details + receipt ---------- */
   function totals() {
     const sub = state.bag.reduce((t, l) => t + linePrice(l) * l.qty, 0);
-    const tax = sub * D.taxRate;
-    return { sub, tax, total: sub + tax };
+    const drinkPrices = state.bag.filter((l) => isDrink(l.itemId)).map((l) => linePrice(l));
+    const reward = state.freeDrinks > 0 && drinkPrices.length ? Math.min.apply(null, drinkPrices) : 0;
+    const tax = (sub - reward) * D.taxRate;
+    return { sub, reward, tax, total: sub - reward + tax };
   }
 
   function renderBag() {
-    const s = currentStore();
     const el = $('[data-screen="bag"]');
-    if (!state.bag.length) {
-      el.innerHTML = '<h1 style="font-size:24px;margin-top:8px">Bag</h1><div class="empty"><div class="art">☕</div><p>Your bag is empty.</p><button class="btn" style="margin-top:14px" data-go="menu">Browse the menu</button></div>';
+    const s = bagStore();
+    if (!s) {
+      el.innerHTML = '<div class="screen-title">Bag</div><div class="empty"><h2>Nothing in your bag yet</h2><p>Find a shop on the map and add something from its menu.</p><button class="btn" data-go="' + (state.orderStoreId ? 'menu' : 'stores') + '">' + (state.orderStoreId ? 'Back to the menu' : 'Open the map') + '</button></div>';
       return;
     }
     if (!s.pickup.includes(state.pickupMode)) state.pickupMode = s.pickup[0];
     const t = totals();
-    const readyIn = (state.pickupIn || s.wait);
+    const ready = state.pickupIn || s.wait;
+    const now = new Date(Date.now() + ready * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     el.innerHTML =
-      '<h1 style="font-size:24px;margin-top:8px">Bag</h1>' +
-      '<div class="section"><div class="menu-store"><div class="store-thumb">' + I.map + '</div><div class="grow"><div class="eyebrow">Pickup at</div><h3>' + esc(s.name) + '</h3><div class="small">' + esc(s.address) + '</div></div><button class="link" data-go="stores">Change</button></div></div>' +
-      '<div class="section"><div class="card" style="padding:4px 16px">' + state.bag.map((l) => {
-        const m = itemById(l.itemId);
-        return '<div class="bag-item"><div class="art">' + art(m) + '</div><div class="grow"><h3>' + esc(lineTitle(l)) + '</h3>' + (lineMods(l) ? '<div class="mods">' + esc(lineMods(l)) + '</div>' : '') +
-          '<div class="ctl"><button data-line-qty="' + l.id + '" data-d="-1" aria-label="Fewer">−</button><span class="q">' + l.qty + '</span><button data-line-qty="' + l.id + '" data-d="1" aria-label="More">+</button><button class="remove" data-remove="' + l.id + '">Remove</button></div></div>' +
-          '<div class="price">' + money(linePrice(l) * l.qty) + '</div></div>';
-      }).join('') + '</div></div>' +
+      '<div class="screen-title">Bag</div>' +
+      '<div class="field"><div class="label">Pick up at</div><div class="field-row"><div class="grow"><h3>' + esc(s.name) + '</h3><div class="small muted">' + esc(s.address) + '</div></div><button class="link" data-show-store="' + s.id + '">Map</button></div></div>' +
+      (s.pickup.length > 1 ? '<div class="field"><div class="label">How</div><div class="seg">' + D.pickupModes.filter((p) => s.pickup.includes(p.id)).map((p) =>
+        '<button class="' + (p.id === state.pickupMode ? 'is-on' : '') + '" data-mode="' + p.id + '">' + p.name + '</button>').join('') + '</div>' +
+        '<p class="small muted" style="margin-top:8px">' + D.pickupModes.find((p) => p.id === state.pickupMode).hint + '</p></div>' : '') +
+      '<div class="field"><div class="label">When</div><div class="seg">' + [0, 15, 30, 60].map((n) =>
+        '<button class="' + ((state.pickupIn || 0) === n ? 'is-on' : '') + '" data-time="' + n + '">' + (n ? n + ' min' : 'ASAP') + '<small>' + (n ? 'from now' : '~' + s.wait + ' min') + '</small></button>').join('') + '</div></div>' +
 
-      '<div class="section"><div class="section-head"><h2>Pickup</h2></div><div class="card"><div class="chip-row">' + D.pickupModes.filter((p) => s.pickup.includes(p.id)).map((p) =>
-        '<button class="chip' + (p.id === state.pickupMode ? ' is-on' : '') + '" data-mode="' + p.id + '">' + p.name + '</button>').join('') + '</div>' +
-        '<p class="small muted" style="margin-top:8px">' + D.pickupModes.find((p) => p.id === state.pickupMode).hint + '.</p>' +
-        '<div class="divider"></div><div class="eyebrow" style="margin-bottom:8px">Ready in</div><div class="time-grid">' + [0, 15, 30, 60].map((n) =>
-          '<button class="size' + ((state.pickupIn || 0) === n ? ' is-on' : '') + '" data-time="' + n + '">' + (n ? n + ' min' : 'ASAP') + '<small>' + (n ? 'scheduled' : '~' + s.wait + ' min') + '</small></button>').join('') + '</div></div></div>' +
-
-      '<div class="section"><div class="section-head"><h2>Payment</h2></div><div class="card pay-row"><div class="card-art"></div><div class="grow"><div style="font-weight:700">Visa ending 4021</div><div class="small muted">Pay in app · earns ' + D.beansPerDollar + ' bean per $1</div></div>' + I.check.replace('<svg', '<svg width="20" height="20" style="color:var(--brew)"') + '</div></div>' +
-
-      '<div class="section"><div class="card"><div class="totals"><span class="muted">Subtotal</span><span>' + money(t.sub) + '</span><span class="muted">Tax</span><span>' + money(t.tax) + '</span><span class="t">Total</span><span class="t">' + money(t.total) + '</span></div></div></div>' +
-      '<div class="sticky-cta"><button class="btn btn--block" data-place>Place order · ' + money(t.total) + ' · ready in ' + readyIn + ' min</button></div>';
+      '<div class="receipt-wrap"><div class="receipt">' +
+        '<div class="receipt-head"><strong>' + esc(s.name) + '</strong><span>' + esc(s.address) + '<br>PICKUP ' + now.toUpperCase() + ' · ' + (state.pickupMode === 'curbside' ? 'CURBSIDE' : 'COUNTER') + '</span></div>' +
+        state.bag.map((l) => '<div class="r-line"><div class="r-main"><span>' + l.qty + '×</span><span class="name">' + esc(lineTitle(l)) + '</span><span>' + money(linePrice(l) * l.qty) + '</span></div>' +
+          (lineMods(l) ? '<div class="r-mods">' + esc(lineMods(l)) + '</div>' : '') +
+          '<div class="r-ctl"><span class="stepper"><button data-line-qty="' + l.id + '" data-d="-1" aria-label="Fewer">−</button><span>' + l.qty + '</span><button data-line-qty="' + l.id + '" data-d="1" aria-label="More">+</button></span><button class="remove" data-remove="' + l.id + '">Remove</button></div></div>').join('') +
+        '<div class="r-totals"><span>Subtotal</span><span>' + money(t.sub) + '</span>' +
+          (t.reward ? '<span>Punch card: free drink</span><span>−' + money(t.reward) + '</span>' : '') +
+          '<span>Tax 7%</span><span>' + money(t.tax) + '</span><span class="t">Total</span><span class="t">' + money(t.total) + '</span></div>' +
+      '</div></div>' +
+      '<div class="field"><div class="label">Pay with</div><div class="field-row"><div class="grow"><h3>Visa <span class="mono">•••• 4021</span></h3><div class="small muted">Earns a punch for every drink</div></div></div></div>' +
+      '<div class="cta"><button class="btn btn--block" data-place>Place order · <span class="mono">' + money(t.total) + '</span></button></div>';
   }
 
   function placeOrder() {
-    const s = currentStore();
+    const s = bagStore();
     const t = totals();
-    const code = String.fromCharCode(65 + Math.floor(Math.random() * 26)) + String.fromCharCode(65 + Math.floor(Math.random() * 26)) + Math.floor(100 + Math.random() * 900);
-    const order = {
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const code = letters[Math.floor(Math.random() * letters.length)] + letters[Math.floor(Math.random() * letters.length)] + Math.floor(10 + Math.random() * 90);
+    const drinks = state.bag.filter((l) => isDrink(l.itemId)).reduce((n, l) => n + l.qty, 0);
+    if (t.reward) state.freeDrinks -= 1;
+    const before = state.punches;
+    state.punches += drinks;
+    state.freeDrinks += Math.floor(state.punches / D.rewardAt) - Math.floor(before / D.rewardAt);
+    state.orders.unshift({
       id: uid(), code, storeId: s.id, mode: state.pickupMode, scheduledIn: state.pickupIn || 0, waitMin: s.wait,
       lines: state.bag.map((l) => Object.assign({}, l)), total: t.total, placedAt: Date.now()
-    };
-    state.orders.unshift(order);
-    state.beans += Math.round(t.total * D.beansPerDollar);
+    });
     state.bag = [];
     state.pickupIn = 0;
     save();
     go('orders');
-    toast('Order placed · ' + code);
+    $('[data-screen="orders"]').scrollTop = 0;
+    toast('Sent to ' + s.name + (drinks ? ' · +' + drinks + ' punch' + (drinks > 1 ? 'es' : '') : ''));
   }
 
-  /* ---------- orders ---------- */
-  /* Status is derived from elapsed time so it survives a reload:
-     received for the first 12 s, preparing until "ready", then ready for 3 min, then done. */
+  /* ---------- orders: punch card + pickup tickets ---------- */
+  /* Status comes from elapsed time so it survives a reload. Demo pace: received 12 s, then making. */
+  function orderTimes(o) {
+    const made = o.placedAt + 12000 + (o.scheduledIn ? o.scheduledIn * 60000 : 0);
+    return { placed: o.placedAt, making: o.placedAt + 12000, ready: made + 30000 };
+  }
   function orderStatus(o) {
-    const el = (Date.now() - o.placedAt) / 1000;
-    const readyAt = 12 + (o.scheduledIn ? o.scheduledIn * 60 : 0) + 30;
-    if (el < 12) return 'received';
-    if (el < readyAt) return 'preparing';
-    if (el < readyAt + 180) return 'ready';
+    const t = orderTimes(o), n = Date.now();
+    if (n < t.making) return 'received';
+    if (n < t.ready) return 'making';
+    if (n < t.ready + 180000) return 'ready';
     return 'done';
   }
-  const statusLabel = (st) => ({ received: 'Order received', preparing: 'Preparing', ready: 'Ready for pickup', done: 'Picked up' })[st];
+  const hhmm = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  function punchCard() {
+    const n = state.punches % D.rewardAt;
+    return '<div class="block"><div class="block-head"><h2>Punch card</h2><span class="mono small">' + n + ' of ' + D.rewardAt + '</span></div>' +
+      '<div class="punch-card"><div class="punches">' + Array.from({ length: D.rewardAt }, (_, i) =>
+        i === D.rewardAt - 1 && i >= n ? '<span class="punch free">FREE</span>' : '<span class="punch' + (i < n ? ' on' : '') + '"></span>').join('') + '</div>' +
+      '<p>' + (state.freeDrinks ? 'You have a free drink. It comes off your next order automatically.' : (D.rewardAt - n) + ' more drink' + (D.rewardAt - n === 1 ? '' : 's') + ' and the next one is free. Works at every shop in the app.') + '</p></div></div>';
+  }
 
   let ordersTimer;
   function renderOrders() {
     const el = $('[data-screen="orders"]');
     clearInterval(ordersTimer);
-    if (!state.orders.length) {
-      el.innerHTML = '<h1 style="font-size:24px;margin-top:8px">Orders</h1><div class="empty"><div class="art">🧾</div><p>No orders yet. Your pickups will show up here.</p><button class="btn" style="margin-top:14px" data-go="menu">Start an order</button></div>';
-      return;
-    }
     const active = state.orders.filter((o) => orderStatus(o) !== 'done');
     const past = state.orders.filter((o) => orderStatus(o) === 'done');
-    el.innerHTML = '<h1 style="font-size:24px;margin-top:8px">Orders</h1>' +
+    el.innerHTML = '<div class="screen-title">Orders</div>' +
       active.map((o) => {
-        const st = orderStatus(o), s = storeById(o.storeId);
-        const idx = ['received', 'preparing', 'ready'].indexOf(st);
-        const mode = D.pickupModes.find((p) => p.id === o.mode);
-        return '<div class="section"><div class="card order-card"><div class="row"><div class="grow"><div class="eyebrow">' + esc(s.name) + ' · ' + mode.name + '</div><div class="code">' + o.code + '</div></div>' +
-          '<div style="text-align:right"><div class="price">' + money(o.total) + '</div><div class="small muted">' + o.lines.reduce((n, l) => n + l.qty, 0) + ' item' + (o.lines.length === 1 && o.lines[0].qty === 1 ? '' : 's') + '</div></div></div>' +
-          '<div class="steps">' + ['Received', 'Preparing', 'Ready'].map((n, i) => '<div class="step' + (i < idx ? ' is-done' : i === idx ? (st === 'ready' ? ' is-done' : ' is-now') : '') + '"><div class="bar"><i></i></div>' + n + '</div>').join('') + '</div>' +
-          (st === 'ready' ? '<div class="ready-banner">' + I.check.replace('<svg', '<svg width="20" height="20"') + ' Ready at the ' + (o.mode === 'drive' ? 'window' : o.mode === 'curbside' ? 'curb' : 'pickup counter') + ' · ' + esc(s.address) + '</div>'
-            : '<p class="small muted" style="margin-top:6px">' + (st === 'received' ? 'The barista just picked up your ticket.' : o.scheduledIn ? 'Scheduled for ' + o.scheduledIn + ' min from order time.' : 'About ' + o.waitMin + ' min. We will show it here when it is up.') + '</p>') +
-          '<div class="order-lines">' + o.lines.map((l) => l.qty + ' × ' + esc(lineTitle(l))).join(' · ') + '</div>' +
-          '<div class="row" style="margin-top:12px;gap:8px"><button class="btn btn--ghost btn--sm" data-show-store="' + s.id + '">Show on map</button><button class="btn btn--outline btn--sm" data-picked="' + o.id + '">I picked it up</button></div>' +
+        const st = orderStatus(o), s = storeById(o.storeId), t = orderTimes(o);
+        const steps = [['received', 'Sent to the shop', hhmm(t.placed)], ['making', 'Barista is making it', st === 'received' ? '' : hhmm(t.making)], ['ready', o.mode === 'curbside' ? 'Ready for curbside' : 'On the pickup shelf', (st === 'ready' ? '' : '~') + hhmm(t.ready)]];
+        const idx = ['received', 'making', 'ready'].indexOf(st);
+        return '<div class="ticket"><div class="ticket-top"><div class="label">Pickup code</div><div class="code">' + o.code + '</div>' +
+          '<div class="where">' + esc(s.name) + ' · ' + esc(s.address) + '</div></div><div class="perf"></div>' +
+          '<div class="ticket-body"><ol class="timeline">' + steps.map((x, i) => '<li class="' + (i < idx || (st === 'ready' && i === idx) ? 'done' : i === idx ? 'now' : '') + '"><span class="dot"></span>' + x[1] + '<span class="t">' + x[2] + '</span></li>').join('') + '</ol>' +
+          (st === 'ready' ? '<div class="ready-note">It\'s ready. Say "' + o.code + '" at the ' + (o.mode === 'curbside' ? 'car window' : 'counter') + '.</div>' : '') +
+          '<div class="ticket-items">' + o.lines.map((l) => '<span>' + l.qty + '× ' + esc(lineTitle(l)) + (lineMods(l) ? ' (' + esc(lineMods(l)) + ')' : '') + '</span>').join('') + '<span style="color:var(--ink)">Total ' + money(o.total) + '</span></div>' +
+          '<div class="btn-row"><button class="btn btn--line btn--sm" data-show-store="' + s.id + '">Directions</button><button class="btn btn--ink btn--sm" data-picked="' + o.id + '">' + (o.mode === 'curbside' && st !== 'ready' ? 'I\'m here' : 'Picked it up') + '</button></div>' +
           '</div></div>';
       }).join('') +
-      (past.length ? '<div class="section"><div class="section-head"><h2>Past orders</h2></div><div class="card" style="padding:4px 16px">' + past.map((o) =>
-        '<div class="past"><div class="grow"><div style="font-weight:700">' + esc(storeById(o.storeId).name) + '</div><div class="small muted">' + o.lines.map((l) => l.qty + ' × ' + esc(lineTitle(l))).join(', ') + '</div><div class="when">' + new Date(o.placedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' · ' + money(o.total) + '</div></div>' +
-        '<button class="btn btn--ghost btn--sm" data-reorder="' + o.id + '">Reorder</button></div>').join('') + '</div></div>' : '');
+      punchCard() +
+      (past.length ? '<div class="block"><div class="block-head"><h2>Past orders</h2></div>' + past.slice(0, 12).map((o) =>
+        '<div class="list-row past">' + art(o.lines[0].itemId, 'sm') + '<div class="grow"><h3>' + esc(storeById(o.storeId).name) + '</h3><div class="sub">' + o.lines.map((l) => l.qty + '× ' + esc(lineTitle(l))).join(', ') + '</div>' +
+        '<div class="when">' + new Date(o.placedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' · ' + money(o.total) + '</div></div>' +
+        '<button class="btn btn--line btn--sm" data-reorder="' + o.id + '">Reorder</button></div>').join('') + '</div>'
+        : (active.length ? '' : '<div class="empty"><h2>No orders yet</h2><p>Your pickup tickets show up here.</p><button class="btn" data-go="stores">Find a shop</button></div>'));
     if (active.length) ordersTimer = setInterval(() => { if (state.screen === 'orders') renderOrders(); }, 3000);
   }
 
   function reorder(id) {
     const o = state.orders.find((x) => x.id === id);
     if (!o) return;
-    state.storeId = o.storeId;
+    state.orderStoreId = o.storeId;
     state.bag = o.lines.map((l) => Object.assign({}, l, { id: uid() }));
     save();
     go('bag');
-    toast('Bag restored from your order');
+    toast('Same order as last time, at ' + storeById(o.storeId).name);
   }
 
   /* ---------- events (one delegated listener) ---------- */
   document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-go],[data-order-at],[data-item],[data-reorder],[data-select],[data-deselect],[data-fav],[data-filter],[data-zoom],[data-locate],[data-cat],[data-size],[data-milk],[data-shots],[data-extra],[data-qty],[data-add],[data-close],[data-line-qty],[data-remove],[data-mode],[data-time],[data-place],[data-show-store],[data-picked]');
+    const t = e.target.closest('[data-go],[data-order-at],[data-item],[data-reorder],[data-select],[data-deselect],[data-fav],[data-filter],[data-zoom],[data-locate],[data-cat],[data-size],[data-milk],[data-shots],[data-syrup],[data-warm],[data-qty],[data-add],[data-close],[data-line-qty],[data-remove],[data-mode],[data-time],[data-place],[data-show-store],[data-picked]');
     if (!t) return;
     const d = t.dataset;
     if (d.go) return go(d.go);
-    if (d.orderAt) { state.storeId = d.orderAt; return go('menu'); }
-    if (d.item) { if (d.itemStore) state.storeId = d.itemStore; if (!state.storeId) state.storeId = currentStore().id; return openItem(d.item); }
+    if (d.orderAt) return startOrderAt(d.orderAt);
+    if (d.item && !draft) {
+      if (d.itemStore && d.itemStore !== state.orderStoreId) {
+        if (state.bag.length) state.bag = [];
+        state.orderStoreId = d.itemStore;
+      }
+      return openItem(d.item);
+    }
     if (d.reorder) return reorder(d.reorder);
     if (d.select) return selectStore(d.select, true);
-    if (d.deselect !== undefined) { state.storeId = null; return renderStores(); }
+    if (d.deselect !== undefined) { state.storeId = null; save(); return renderStores(); }
     if (d.fav) {
       const i = state.favorites.indexOf(d.fav);
       i >= 0 ? state.favorites.splice(i, 1) : state.favorites.push(d.fav);
-      save(); toast(i >= 0 ? 'Removed from favorites' : 'Saved to favorites'); return renderStores();
+      save(); toast(i >= 0 ? 'Removed from saved shops' : 'Saved. Find it under Saved on the map'); return renderStores();
     }
-    if (d.filter) { state.filter = d.filter; save(); return renderStores(); }
+    if (d.filter) { state.filter = d.filter; state.storeId = null; save(); return renderStores(); }
     if (d.zoom) return zoom(d.zoom === 'in' ? 1 / 1.4 : 1.4);
     if (d.locate !== undefined) return centerOn(D.me.x, D.me.y, true);
-    if (d.cat) { menuCat = d.cat; $$('.cat-tab').forEach((c) => c.classList.toggle('is-on', c.dataset.cat === d.cat)); const g = $('#cat-' + d.cat); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (d.cat) {
+      menuCat = d.cat;
+      $$('.cat-tab').forEach((c) => c.classList.toggle('is-on', c.dataset.cat === d.cat));
+      const g = $('#cat-' + d.cat);
+      if (g) g.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      return;
+    }
     if (draft) {
       if (d.size) draft.size = d.size;
       else if (d.milk) draft.milk = d.milk;
       else if (d.shots) draft.shots = Math.min(4, Math.max(0, draft.shots + Number(d.shots)));
-      else if (d.extra) { const i = draft.extras.indexOf(d.extra); i >= 0 ? draft.extras.splice(i, 1) : draft.extras.push(d.extra); }
+      else if (d.syrup) { const i = draft.syrups.indexOf(d.syrup); i >= 0 ? draft.syrups.splice(i, 1) : draft.syrups.push(d.syrup); }
+      else if (d.warm !== undefined) draft.warm = !draft.warm;
       else if (d.qty) draft.qty = Math.min(10, Math.max(1, draft.qty + Number(d.qty)));
       else if (d.add !== undefined) return addToBag();
       else if (d.close !== undefined) return closeModal();
       return renderModal();
     }
-    if (d.lineQty) { const l = state.bag.find((x) => x.id === d.lineQty); l.qty = Math.max(1, l.qty + Number(d.d)); save(); renderTopbar(); return renderBag(); }
+    if (d.lineQty) { const l = state.bag.find((x) => x.id === d.lineQty); l.qty = Math.min(10, Math.max(1, l.qty + Number(d.d))); save(); renderTopbar(); return renderBag(); }
     if (d.remove) { state.bag = state.bag.filter((x) => x.id !== d.remove); save(); renderTopbar(); return renderBag(); }
     if (d.mode) { state.pickupMode = d.mode; save(); return renderBag(); }
     if (d.time) { state.pickupIn = Number(d.time); save(); return renderBag(); }
     if (d.place !== undefined) return placeOrder();
-    if (d.showStore) { state.storeId = d.showStore; go('stores'); return centerOn(storeById(d.showStore).x, storeById(d.showStore).y, true); }
-    if (d.picked) { const o = state.orders.find((x) => x.id === d.picked); o.placedAt = 0; save(); toast('Enjoy!'); return renderOrders(); }
+    if (d.showStore) { state.storeId = d.showStore; go('stores'); const s = storeById(d.showStore); return centerOn(s.x, s.y, true); }
+    if (d.picked) {
+      const o = state.orders.find((x) => x.id === d.picked);
+      if (o.mode === 'curbside' && orderStatus(o) !== 'ready') { toast(storeById(o.storeId).name + ' knows you\'re outside'); return; }
+      o.placedAt = 0; save(); toast('Enjoy it'); return renderOrders();
+    }
   });
 
-  $('#storeSearch').addEventListener('input', (e) => { state.query = e.target.value; renderStores(); });
+  const search = $('#storeSearch');
+  search.addEventListener('input', (e) => { state.query = e.target.value; state.storeId = null; renderStores(); });
+  search.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const first = visibleStores()[0];
+    if (first) { search.blur(); selectStore(first.id, true); }
+  });
   $('#itemModal').addEventListener('click', (e) => { if (e.target.classList.contains('modal-scrim')) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && draft) closeModal(); });
   window.addEventListener('resize', () => { if (map.built) applyViewBox(); });
 
   /* ---------- boot ---------- */
-  $('#storeSearch').value = state.query || '';
+  search.value = state.query || '';
   $$('.tab').forEach((t) => { t.innerHTML = I[t.dataset.icon] + '<span>' + t.textContent.trim() + '</span>' + (t.dataset.go === 'bag' ? '<span class="badge" id="bagBadge" hidden>0</span>' : ''); });
   $('#brandMark').innerHTML = I.cup;
-  $('#beanIcon').innerHTML = I.bean;
-  $$('.map-ctrls [data-zoom="in"]').forEach((b) => b.innerHTML = I.zoomIn);
-  $$('.map-ctrls [data-zoom="out"]').forEach((b) => b.innerHTML = I.zoomOut);
-  $$('.map-ctrls [data-locate]').forEach((b) => b.innerHTML = I.locate);
+  $('[data-zoom="in"]').innerHTML = I.plus;
+  $('[data-zoom="out"]').innerHTML = I.minus;
+  $('[data-locate]').innerHTML = I.locate;
   $('#searchIcon').innerHTML = I.search;
   $('#modalClose').innerHTML = I.close;
-  go(state.screen || 'home');
+  go(['stores', 'menu', 'bag', 'orders'].includes(state.screen) ? state.screen : 'stores');
 })();
