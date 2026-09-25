@@ -303,6 +303,19 @@
     $('#me').setAttribute('transform', 'translate(' + D.me.x + ' ' + D.me.y + ') scale(' + k + ')');
   }
 
+  /* opening view: the shops within a short walk, zoomed in enough that their tees stand apart,
+     with room above for the search bar. Runs after the sheet exists, so the map has its real height. */
+  function fitNearby() {
+    const near = D.stores.filter((s) => distMi(s) <= 0.6).concat([D.me]);
+    const xs = near.map((n) => n.x), ys = near.map((n) => n.y);
+    const r = map.svg.getBoundingClientRect(), aspect = (r.height || 360) / (r.width || 390);
+    map.vb.w = Math.min(1300, Math.max(720, (Math.max(...xs) - Math.min(...xs)) + 360, ((Math.max(...ys) - Math.min(...ys)) + 520) / aspect));
+    map.vb.h = map.vb.w * aspect;
+    map.vb.x = (Math.min(...xs) + Math.max(...xs)) / 2 - map.vb.w / 2;
+    map.vb.y = Math.min(...ys) - 400;
+    applyViewBox();
+  }
+
   function zoomAt(f, cx, cy) {
     const r = map.svg.getBoundingClientRect();
     const fx = (cx - r.left) / r.width, fy = (cy - r.top) / r.height;
@@ -727,4 +740,5 @@
   $$('.bk').forEach((b) => { b.outerHTML = I.back; });
   $$('.tab').forEach((t) => { t.innerHTML = I[t.dataset.icon] + '<span>' + t.textContent.trim() + '</span>'; });
   go(['map', 'menu', 'cart', 'specials', 'orders'].includes(state.screen) ? state.screen : 'map');
+  if (map.built && !state.storeId) requestAnimationFrame(fitNearby);
 })();
