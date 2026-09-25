@@ -13,32 +13,32 @@
 <div class="stage">
 <div class="app" id="app">
 
-  <section class="screen has-tabs is-active" data-screen="map" aria-label="Stores">
-    <div class="map-wrap">
-      <svg class="map-svg" id="mapSvg" viewBox="0 0 1400 1400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of coffee shops in Boca Raton"></svg>
-      <label class="search">
-        <span class="logo" id="logo" aria-hidden="true"></span>
-        <input id="q" type="search" placeholder="Search coffee shops" autocomplete="off" enterkeyhint="search" aria-label="Search coffee shops">
-        <button class="clear" id="qClear" type="button" aria-label="Clear search" hidden></button>
+  <section class="screen has-tabs is-active" data-screen="map" aria-label="Coffee shops">
+    <div class="searchbar">
+      <span class="logo" id="logo" aria-hidden="true"></span>
+      <label class="search"><span id="searchIcon" aria-hidden="true"></span>
+        <input id="q" type="search" placeholder="Search shops or drinks" autocomplete="off" enterkeyhint="search" aria-label="Search coffee shops or drinks">
+        <button class="clear" id="qClear" type="button" hidden>Clear</button>
       </label>
-      <button class="fab" id="locate" style="top:68px" aria-label="Show my location"></button>
-      <div class="sheet" id="sheet">
-        <div class="grabber" aria-hidden="true"></div>
-        <div class="sheet-body" id="sheetBody"></div>
-      </div>
     </div>
+    <div class="map-area">
+      <svg class="map-svg" id="mapSvg" viewBox="0 0 1300 1300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of coffee shops in Boca Raton"></svg>
+      <button class="sq locate" id="locate" aria-label="Show my location"></button>
+      <div class="zoom"><button class="sq" id="zoomIn" aria-label="Zoom in"></button><button class="sq" id="zoomOut" aria-label="Zoom out"></button></div>
+    </div>
+    <div class="sheet" id="sheet"><div class="sheet-body" id="sheetBody"></div></div>
   </section>
 
   <section class="screen" data-screen="menu" aria-label="Menu">
-    <div class="nav"><button class="back" data-back aria-label="Back to map"></button><h1 id="menuTitle"></h1><span></span></div>
+    <div class="nav"><button class="back" data-back><span class="bk"></span>Map</button><h1 id="menuTitle"></h1></div>
     <div class="scroll" id="menuBody"></div>
-    <div class="cart-bar" id="cartBar" hidden></div>
+    <div class="bottom-bar" id="cartBar" hidden></div>
   </section>
 
   <section class="screen" data-screen="cart" aria-label="Your order">
-    <div class="nav"><button class="back" data-go="menu" aria-label="Back to menu"></button><h1>Your Order</h1><span></span></div>
+    <div class="nav"><button class="back" data-go="menu"><span class="bk"></span>Menu</button><h1>Your order</h1></div>
     <div class="scroll" id="cartBody"></div>
-    <div class="cart-bar" id="placeBar"></div>
+    <div class="bottom-bar" id="placeBar"></div>
   </section>
 
   <section class="screen has-tabs" data-screen="orders" aria-label="Orders">
@@ -46,17 +46,14 @@
   </section>
 
   <nav class="tabbar" id="tabbar" aria-label="Main">
-    <button class="tab is-active" data-go="map" data-icon="map">Stores</button>
+    <button class="tab is-active" data-go="map" data-icon="map">Shops</button>
     <button class="tab" data-go="orders" data-icon="receipt">Orders</button>
   </nav>
 
-  <div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-label="Customize item">
-    <div class="modal-scrim"></div>
-    <div class="modal-panel">
-      <div class="modal-head"><button class="circle" data-close aria-label="Close" id="closeBtn"></button></div>
-      <div class="modal-body" id="modalBody"></div>
-      <div class="modal-foot" id="modalFoot"></div>
-    </div>
+  <div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemTitle">
+    <div class="nav"><button class="back" data-close><span class="bk"></span>Menu</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
   </div>
 </div>
 </div>

@@ -1,11 +1,14 @@
 /* On the Go — Boca Raton shops and their menus.
    Menus are built from each shop's published menu and listings (Sept 2026). Where a shop's
-   price wasn't published, the price is an estimate. Wait times, ratings and busy levels are
-   sample values. Positions are placed from street addresses and are approximate. */
+   price wasn't published, the price is an estimate.
+   week: hours by day, Sunday first (null = closed); falls back to hours.
+   pattern + traffic drive the pickup-time estimate in app.js (see busyness()); traffic is scaled
+   from each shop's Google review count. Coordinates are from each shop's Google Maps listing.
+   featureDay: the weekday (0 = Sunday) the shop's signature drink shows on the map. */
 
 window.OTG_DATA = {
   /* "you": Sanborn Square, downtown Boca Raton */
-  me: { lat: 26.3520, lng: -80.0850, punches: 7 },
+  me: { lat: 26.3520, lng: -80.0850 },
   rewardAt: 10,
   taxRate: 0.07,
 
@@ -73,6 +76,22 @@ window.OTG_DATA = {
     pumpkincf:    { name: 'Pumpkin Cold Foam Latte', cat: 'iced', kind: 'iced', color: '#B8793F', cal: 240, coffee: true, milk: true, sized: true, desc: 'Seasonal. Iced latte under pumpkin cold foam.' },
     ube:          { name: 'Ube Cookie Monster', cat: 'iced', kind: 'iced', color: '#9B7BB8', cal: 320, coffee: true, milk: true, sized: true, desc: 'Ube latte with cookie crumble. Their most photographed drink.' },
 
+    honeylav:     { name: 'Honey Lavender Latte', cat: 'coffee', kind: 'hot', color: '#C7A98C', cal: 230, coffee: true, milk: true, sized: true, desc: 'Seasonal. Honey and lavender with espresso and steamed milk.' },
+    rosecard:     { name: 'Rose Cardamom Latte', cat: 'coffee', kind: 'hot', color: '#D2A69A', cal: 220, coffee: true, milk: true, sized: true, desc: 'Seasonal. Rose and cardamom latte.' },
+    aulait:       { name: 'Café au Lait', cat: 'coffee', kind: 'hot', color: '#A57B58', cal: 110, milk: true, sized: true, desc: 'Drip coffee with steamed milk.' },
+    pourover:     { name: 'Kalita Pour Over', cat: 'coffee', kind: 'black', color: '#3E2517', cal: 5, desc: 'Single cup, brewed by hand to order.' },
+    hotchoc:      { name: 'Hot Chocolate', cat: 'coffee', kind: 'hot', color: '#6E4330', cal: 320, milk: true, sized: true, desc: 'Steamed milk and chocolate.' },
+    lavacup:      { name: 'Louis Lava Cup', cat: 'coffee', kind: 'hot', color: '#7A4A2E', cal: 300, coffee: true, desc: 'The house signature drink.' },
+    cblemonade:   { name: 'Cold Brew Lemonade', cat: 'iced', kind: 'iced', color: '#B98A3E', cal: 110, sized: true, desc: 'Cold brew over fresh lemonade.' },
+    yuzucb:       { name: 'Yuzu Honey Cold Brew Lemonade', cat: 'iced', kind: 'iced', color: '#C9A04A', cal: 140, sized: true, desc: 'Seasonal. Cold brew, yuzu, honey and lemonade.' },
+    strawmatcha:  { name: 'Strawberry Matcha Cloud', cat: 'iced', kind: 'iced', color: '#9CC48A', cal: 250, milk: true, sized: true, desc: 'Seasonal. Iced matcha over strawberry, topped with cream.' },
+    obchai:       { name: 'Orange Blossom Chai', cat: 'more', kind: 'hot', color: '#C9975E', cal: 230, milk: true, sized: true, desc: 'Seasonal. Chai with orange blossom.' },
+    londonfog:    { name: 'London Fog', cat: 'more', kind: 'hot', color: '#D3BFA3', cal: 180, milk: true, sized: true, desc: 'Earl Grey, vanilla and steamed milk.' },
+    hottea:       { name: 'Hot Tea', cat: 'more', kind: 'black', color: '#8B5A2B', cal: 0, sized: true, desc: 'Ask the barista for today\'s teas.' },
+    cider:        { name: 'Spiced Apple Cider', cat: 'more', kind: 'black', color: '#B5651D', cal: 180, sized: true, desc: 'Warm, spiced apple cider.' },
+    strawog:      { name: 'Strawberry OG Smoothie', cat: 'more', kind: 'frozen', color: '#E48A9A', cal: 290, desc: 'Strawberry, banana, almond milk and honey.' },
+    chocbanana:   { name: 'Chocolate Banana ICE', cat: 'more', kind: 'frozen', color: '#6B4630', cal: 420, desc: 'Banana, cold brew, almond butter, mocha and almond milk.' },
+    bgaffogato:   { name: 'Black & Gold Affogato', cat: 'more', kind: 'affogato', color: '#3A2216', cal: 240, desc: 'Espresso poured over gelato, finished the house way.' },
     chai:         { name: 'Chai Latte',        cat: 'more', kind: 'hot',  color: '#C99A6B', cal: 240, milk: true, sized: true, desc: 'Spiced black tea with steamed milk. Ask for it iced.' },
     matcha:       { name: 'Matcha Latte',      cat: 'more', kind: 'iced', color: '#8FBF7F', cal: 200, milk: true, sized: true, desc: 'Stone-ground matcha and milk, hot or iced.' },
     icedtea:      { name: 'Iced Tea',          cat: 'more', kind: 'iced', color: '#9C5A2E', cal: 0,   sized: true, desc: 'Fresh-brewed black tea over ice.' },
@@ -99,6 +118,7 @@ window.OTG_DATA = {
     macaron:      { name: 'Macarons (3)',      cat: 'food', kind: 'food', shape: 'macaron', cal: 210, desc: 'Three French macarons, flavors of the day.' },
     crepe:        { name: 'Sweet Crêpe',       cat: 'food', kind: 'food', shape: 'crepe', cal: 450, desc: 'Folded crêpe, made to order.' },
     baguette:     { name: 'Baguette Sandwich', cat: 'food', kind: 'food', shape: 'sandwich', cal: 520, desc: 'Parisian-style sandwich on fresh baguette.' },
+    quiche:       { name: 'Quiche', cat: 'food', kind: 'food', shape: 'tart', tint: '#E8C35A', cal: 380, warm: true, desc: 'French-style quiche, baked fresh.' },
     empanada:     { name: 'Empanada',          cat: 'food', kind: 'food', shape: 'empanada', cal: 310, warm: true, desc: 'Baked, flaky, filling of the day.' },
     dubaicookie:  { name: 'Dubai Chocolate Cookie', cat: 'food', kind: 'food', shape: 'cookie', tint: '#6F8B3A', cal: 420, desc: 'Chocolate cookie filled with pistachio and kataifi.' },
     caprese:      { name: 'Caprese Sandwich',  cat: 'food', kind: 'food', shape: 'sandwich', cal: 540, desc: 'Fresh mozzarella, ripe tomato and basil.' }
@@ -106,63 +126,66 @@ window.OTG_DATA = {
 
   /* menu: [catalog id, price]. Signature is what the shop is known for. */
   stores: [
-    { id: 'subculture', name: 'Subculture Coffee', address: '437 Plaza Real, Mizner Park', lat: 26.3556, lng: -80.0845,
-      hours: '7 AM – 8 PM', wait: 4, rating: 4.7, busy: 'Steady', pickup: ['store', 'curbside'], shot: 1.50, syrup: 0.75, signature: 'frenchpress',
+    { id: 'subculture', name: 'Subculture Coffee', address: '437 Plaza Real, Mizner Park', lat: 26.3555962, lng: -80.0857171,
+      hours: '7 AM – 8 PM', pattern: 'downtown', traffic: 0.79, featureDay: 1, pickup: ['store', 'curbside'], shot: 1.50, syrup: 0.75, signature: 'frenchpress',
       about: 'Palm Beach County roaster with a counter on the Mizner Park promenade.',
       menu: [['espresso', 2.50], ['cortado', 2.75], ['cappuccino', 3.50], ['latte', 4.00], ['flatwhite', 4.00], ['mocha', 4.50], ['drip', 2.75], ['frenchpress', 4.50],
              ['icedlatte', 4.00], ['icedmocha', 4.50], ['coldbrew', 3.00], ['icedamericano', 2.75], ['chai', 4.00], ['icedtea', 2.25], ['mate', 2.25],
              ['croissant', 3.50], ['choccroissant', 3.95]] },
 
-    { id: 'seed', name: 'the seed. coffee + juice', address: '199 W Palmetto Park Rd', lat: 26.3512, lng: -80.0888,
-      hours: '7 AM – 6 PM', wait: 3, rating: 4.8, busy: 'Quiet', pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'cinnabee',
+    { id: 'seed', name: 'the seed. coffee + juice', address: '199 W Palmetto Park Rd', lat: 26.350844, lng: -80.0892075,
+      hours: '7 AM – 6 PM', pattern: 'breakfast', traffic: 1.4, featureDay: 2, pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'cinnabee',
       about: 'Coffee, cold-pressed juice and açaí, with plenty of vegan options.',
       menu: [['cinnabee', 6.00], ['strawcream', 6.25], ['mushroom', 5.50], ['latte', 5.00], ['cappuccino', 4.75], ['coldbrew', 4.75], ['icedlatte', 5.25],
              ['matcha', 5.75], ['cream', 9.50], ['acai', 12.95], ['bagelbomb', 4.95], ['gfmuffin', 4.50], ['bananaloaf', 4.25]] },
 
-    { id: 'lss', name: 'Long Story Short Cafe', address: '132 NE 2nd St', lat: 26.3532, lng: -80.0858,
-      hours: '7 AM – 3 PM', wait: 5, rating: 4.7, busy: 'Busy', pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'ube',
+    { id: 'lss', name: 'Long Story Short Cafe', address: '132 NE 2nd St', lat: 26.3520155, lng: -80.084757,
+      hours: '7 AM – 3 PM', pattern: 'breakfast', traffic: 0.74, featureDay: 3, pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'ube',
       about: 'Healthy, chic-casual café for coffee, smoothies and açaí bowls.',
       menu: [['drip', 3.50], ['espresso', 3.50], ['americano', 3.75], ['macchiato', 4.00], ['flatwhite', 4.75], ['cappuccino', 5.00], ['latte', 5.25],
              ['bschai', 6.00], ['cocoa', 5.50], ['ube', 6.75], ['pumpkincf', 6.50], ['icedlatte', 5.50], ['acai', 13.00], ['avotoast', 12.00]] },
 
-    { id: 'saquella', name: 'Saquella Café', address: '410 Via De Palmas, Royal Palm Place', lat: 26.3478, lng: -80.0832,
-      hours: '7 AM – 9 PM', wait: 6, rating: 4.5, busy: 'Steady', pickup: ['store'], shot: 1.25, syrup: 0.75, signature: 'cappuccino',
+    { id: 'saquella', name: 'Saquella Café', address: '410 Via De Palmas, Royal Palm Place', lat: 26.346229, lng: -80.085299,
+      hours: '7 AM – 9 PM', pattern: 'evening', traffic: 1.4, featureDay: 4, pickup: ['store'], shot: 1.25, syrup: 0.75, signature: 'cappuccino',
       about: 'Italian café pouring Saquella, roasted by the family in Pescara since 1856. Pastries baked daily.',
       menu: [['espresso', 3.00], ['macchiato', 3.50], ['cappuccino', 4.75], ['latte', 5.00], ['affogato', 6.50],
              ['espcookie', 3.50], ['berrycroissant', 4.75], ['plumalmond', 4.95], ['croissant', 3.75], ['cannoli', 4.50], ['fruittart', 6.50], ['tiramisu', 8.00]] },
 
-    { id: 'third', name: 'Third Place Coffee Lounge', address: '325 NE Spanish River Blvd', lat: 26.3838, lng: -80.0842,
-      hours: '6:30 AM – 7 PM', wait: 3, rating: 4.9, busy: 'Quiet', pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'maplecb',
-      about: 'Lounge seating, long tables and seasonal drinks. Pastries from a local bakery.',
-      menu: [['espresso', 3.25], ['cappuccino', 4.75], ['latte', 5.00], ['drip', 3.25], ['maplecb', 5.75], ['ctclatte', 6.25], ['coldbrew', 4.75],
-             ['icedlatte', 5.25], ['matcha', 5.75], ['chai', 5.25], ['croissant', 4.00], ['choccroissant', 4.50]] },
+    { id: 'third', name: 'Third Place Coffee Lounge', address: '325 NE Spanish River Blvd', lat: 26.3868415, lng: -80.0804472,
+      hours: '6:30 AM – 7 PM', pattern: 'breakfast', traffic: 0.96, featureDay: 5, pickup: ['store', 'curbside'], shot: 1.50, syrup: 0.75, signature: 'honeylav',
+      about: 'Lounge seating, long tables and seasonal drinks. Menu and prices from the shop\'s website.',
+      menu: [['honeylav', 6.25], ['rosecard', 6.25], ['espresso', 3.75], ['macchiato', 4.00], ['cortado', 4.25], ['cappuccino', 4.50], ['flatwhite', 4.75],
+             ['americano', 4.00], ['latte', 5.25], ['drip', 3.75], ['aulait', 4.00], ['pourover', 5.50], ['hotchoc', 4.00],
+             ['coldbrew', 5.00], ['cblemonade', 5.50], ['nitro', 5.50], ['yuzucb', 6.50], ['strawmatcha', 6.75],
+             ['chai', 4.75], ['matcha', 4.75], ['londonfog', 4.75], ['obchai', 5.75], ['hottea', 3.00], ['icedtea', 3.50], ['cider', 4.00],
+             ['strawog', 11.00], ['chocbanana', 12.50], ['croissant', 4.00]] },
 
-    { id: 'mane', name: 'Mane Coffee', address: '500 NE Spanish River Blvd, Ste 7', lat: 26.3838, lng: -80.0815,
-      hours: '8 AM – 5 PM', wait: 4, rating: 4.8, busy: 'Steady', pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'nitro',
+    { id: 'mane', name: 'Mane Coffee', address: '500 NE Spanish River Blvd, Ste 7', lat: 26.3854727, lng: -80.077721,
+      hours: '8 AM – 5 PM', week: ['9 AM – 2 PM', '8 AM – 5 PM', '8 AM – 5 PM', '8 AM – 5 PM', '8 AM – 5 PM', '8 AM – 5 PM', '8 AM – 5 PM'], pattern: 'breakfast', traffic: 0.98, featureDay: 6, pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'nitro',
       about: 'Named one of America\'s best coffee shops by Food & Wine. Fresh bread and brunch too.',
       menu: [['espresso', 3.50], ['macchiato', 4.00], ['cortado', 4.25], ['cappuccino', 4.50], ['latte', 5.00], ['drip', 3.50], ['nitro', 5.50],
              ['icedlatte', 5.25], ['chai', 4.50], ['matcha', 5.00], ['lemonade', 5.00], ['avotoast', 12.00], ['croissant', 4.25]] },
 
-    { id: 'lacolombe', name: 'La Colombe', address: '3581 N Federal Hwy', lat: 26.3800, lng: -80.0808,
-      hours: '6:30 AM – 7 PM', wait: 5, rating: 4.6, busy: 'Busy', pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'draftlatte',
-      about: 'Philadelphia roaster. The Draft Latte started here, poured from a tap.',
-      menu: [['espresso', 3.50], ['cappuccino', 5.00], ['latte', 5.25], ['americano', 4.00], ['drip', 3.50], ['draftlatte', 5.50], ['coldbrew', 5.00],
-             ['icedlatte', 5.50], ['chai', 5.25], ['croissant', 4.25], ['choccroissant', 4.75]] },
+    { id: 'louis', name: 'Cafe Louis', address: '3581 N Federal Hwy', lat: 26.3825195, lng: -80.0769894,
+      hours: '7 AM – 7 PM', pattern: 'commuter', traffic: 0.85, featureDay: 0, pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'lavacup',
+      about: 'Espresso lounge and designer consignment shop on Federal Hwy.',
+      menu: [['lavacup', 7.50], ['espresso', 3.50], ['macchiato', 4.00], ['cortado', 4.50], ['cappuccino', 5.00], ['latte', 5.50], ['americano', 4.00],
+             ['icedlatte', 5.75], ['coldbrew', 5.00], ['bgaffogato', 8.50], ['quiche', 8.95], ['croissant', 4.25], ['choccroissant', 4.75]] },
 
-    { id: 'carmela', name: 'Carmela Coffee at BRiC', address: '4800 T-Rex Ave, Ste 150', lat: 26.3880, lng: -80.1060,
-      hours: '7 AM – 4 PM', wait: 2, rating: 4.6, busy: 'Quiet', pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'carmacch',
+    { id: 'carmela', name: 'Carmela Coffee at BRiC', address: '4800 T-Rex Ave, Ste 150', lat: 26.3901452, lng: -80.1077121,
+      hours: '7 AM – 4 PM', pattern: 'office', traffic: 0.81, featureDay: 1, pickup: ['store', 'curbside'], shot: 1.00, syrup: 0.75, signature: 'carmacch',
       about: 'Boca-born roaster growing its own beans in Costa Rica. Inside the Boca Raton Innovation Campus.',
       menu: [['drip', 3.25], ['latte', 5.00], ['cappuccino', 4.75], ['carmacch', 5.75], ['pumpkinlatte', 6.25], ['icedcoffee', 3.95], ['icedlatte', 5.25],
              ['matcha', 5.75], ['chai', 5.25], ['avotoast', 12.50], ['croissant', 4.00]] },
 
-    { id: 'lpp', name: 'LPP Bakery Café', address: '1 Town Center Rd, Ste 102', lat: 26.3640, lng: -80.1330,
-      hours: '7:30 AM – 4 PM', wait: 4, rating: 4.8, busy: 'Steady', pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'almondcroissant',
+    { id: 'lpp', name: 'LPP Bakery Café', address: '1 Town Center Rd, Ste 102', lat: 26.3619477, lng: -80.127561,
+      hours: '7:30 AM – 4 PM', week: [null, '7:30 AM – 4 PM', '7:30 AM – 4 PM', '7:30 AM – 4 PM', '7:30 AM – 4 PM', '7:30 AM – 4 PM', null], pattern: 'mall', traffic: 0.65, featureDay: 3, pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'almondcroissant',
       about: 'Le Petit Poussin. A French bakery run by a French couple, croissants all morning.',
       menu: [['espresso', 3.00], ['cappuccino', 4.75], ['latte', 5.00], ['americano', 3.75], ['icedlatte', 5.25],
              ['croissant', 3.75], ['choccroissant', 4.25], ['almondcroissant', 4.75], ['macaron', 7.50], ['crepe', 11.00], ['baguette', 12.50]] },
 
-    { id: 'pots', name: 'The Pots Cafe', address: '6000 Glades Rd, Town Center', lat: 26.3665, lng: -80.1345,
-      hours: '10 AM – 5 PM', wait: 5, rating: 4.7, busy: 'Busy', pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'cinnamonlatte',
+    { id: 'pots', name: 'The Pots Cafe', address: '6000 Glades Rd, Town Center', lat: 26.3660454, lng: -80.1348276,
+      hours: '10 AM – 5 PM', week: ['11 AM – 7 PM', '10 AM – 5 PM', '10 AM – 5 PM', '10 AM – 5 PM', '10 AM – 5 PM', '10 AM – 8 PM', '10 AM – 8 PM'], pattern: 'mall', traffic: 0.78, featureDay: 6, pickup: ['store'], shot: 1.00, syrup: 0.75, signature: 'cinnamonlatte',
       about: 'A plant shop and café in one, inspired by Costa Rica.',
       menu: [['espresso', 3.50], ['cappuccino', 5.00], ['latte', 5.25], ['cinnamonlatte', 6.00], ['matcha', 6.00], ['mintlemonade', 5.50],
              ['empanada', 5.00], ['dubaicookie', 5.50], ['avotoast', 14.00], ['caprese', 13.50]] }
