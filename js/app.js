@@ -283,7 +283,8 @@
         renderMap();
         const st = storeById(pin.dataset.id);
         centerOn(st.x, st.y, 0.55);
-        $('#sheetBody').scrollTop = 0;
+        const body = $('#sheetBody'), row = $('#sheetBody .row.is-picked');
+        if (row) body.scrollTo({ top: body.scrollTop + row.getBoundingClientRect().top - body.getBoundingClientRect().top, behavior: 'smooth' });
       } else if (state.storeId) { state.storeId = null; save(); renderMap(); }
     });
   }
@@ -392,14 +393,11 @@
     const sel = !state.query && storeById(state.storeId);
     const selE = sel && eta(sel, []);
     $('#sheetBody').innerHTML =
-      (sel ? '<div class="picked">' + tile(sel, true) + '<div class="grow"><div class="t">' + esc(sel.name) + '</div><div class="s">' + esc(sel.tag) + '</div>' +
-        '<div class="s">' + hoursLine(sel) + ' · ' + miles(sel) + (isOpenAt(sel, now) ? ' · ready in ' + etaText(selE) : '') + '</div></div>' +
-        '<button class="btn btn--hot" data-select="' + sel.id + '">Menu</button></div>' : '') +
       (u ? '<div class="usual"><div class="grow"><div class="k">Your usual at ' + esc(fav.name.split(' ').slice(0, 2).join(' ')) + '</div><div class="n">' + esc(lineName(u.line)) + (lineMods(u.line) ? ', ' + esc(lineMods(u.line).toLowerCase()) : '') + '</div>' +
         '<div class="p">' + money(linePrice(u.line)) + ' · Ready in ' + etaText(eta(fav, [u.line])) + '</div></div><button class="btn btn--hot" data-usual="' + fav.id + '">Order</button></div>' : '') +
       '<div class="head">' + (state.query ? list.length + ' result' + (list.length === 1 ? '' : 's') : 'Coffee shops near you') + '</div>' +
-      (list.length ? list.map((st) => '<button class="row" data-select="' + st.id + '">' + tile(st) + '<div class="grow"><div class="t">' + esc(st.name) + '</div>' +
-        '<div class="s">' + esc(st.tag) + '</div><div class="s">' + hoursLine(st) + ' · ' + miles(st) + '</div>' +
+      (list.length ? list.map((st) => '<button class="row' + (sel && sel.id === st.id ? ' is-picked' : '') + '" data-select="' + st.id + '">' + tile(st) + '<div class="grow"><div class="t">' + esc(st.name) + '</div>' +
+        '<div class="s">' + esc(st.tag) + '</div><div class="s">' + hoursLine(st) + ' · ' + miles(st) + (sel && sel.id === st.id && isOpenAt(st, now) ? ' · ready in ' + etaText(selE) : '') + '</div>' +
         (visited(st.id) && usualAt(st.id) ? '<span class="been">Been here · usually ' + esc(C[usualAt(st.id).line.itemId].name) + '</span>' : '') +
         (isFeatureDay(st) ? '<span class="pick">Today: ' + esc(C[st.signature].name) + '</span>' : '') + '</div>' +
         '</button>').join('')
