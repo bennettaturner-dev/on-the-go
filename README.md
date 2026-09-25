@@ -18,7 +18,9 @@ python3 -m http.server 8080
 1. The app has three tabs: **Promotions**, **Order** (the map, in the middle, where the app
    opens) and **Orders** (status and past orders). Order shows Boca Raton coffee shops with a
    search bar on top.
-2. Tap a shop in the list or a pin on the map, or search by shop name, street or drink.
+2. Tap a shop in the list, or search by shop name, street or drink. Tapping a tee on the map
+   highlights it and shows the shop's name, hours and ready time with a Menu button; a second
+   tap on the tee opens the menu too.
 3. That shop's menu opens in place of the map. The top shows how long an order will take, how
    busy it usually is right now, today's hours, distance, address and directions.
 4. Pick a drink, choose size, milk and extras, and add it. **Back to map** returns to the map.
@@ -83,7 +85,9 @@ Photos come only from each shop's own online ordering page:
 | Long Story Short, Saquella, Mane, The Pots, Cafe Louis | none on their own pages | none |
 
 Delivery apps, Yelp and Instagram were skipped because those photos usually belong to the
-platform or to customers. Copies live in `img/<shop>/<item>` and `js/photos.js` lists them (rebuild it with
+platform or to customers. Every menu item shows a photo: the shop's own when we have it, otherwise a stand-in (the same
+drink photographed at another shop, or a similar drink), which the item page labels as such.
+Copies live in `img/<shop>/<item>` and `js/photos.js` lists them (rebuild it with
 `node tools/photos-manifest.js`), so they show everywhere, including the Claude preview. The photos belong
 to the shops, so ask each shop's permission before a public release.
 

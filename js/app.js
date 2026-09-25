@@ -13,9 +13,26 @@
   const storeById = (id) => D.stores.find((s) => s.id === id);
   const uid = () => Math.random().toString(36).slice(2, 8);
   const priceAt = (store, id) => { const r = store.menu.find((m) => m[0] === id); return r ? r[1] : 0; };
+  /* Photos: the shop's own photo of the item when we have it. Otherwise a stand-in: the same item
+     photographed at another shop, or a similar drink. standIn() says which, so the item page can
+     label it. */
   const LP = window.OTG_LOCAL_PHOTOS || {};
-  const photo = (storeId, itemId) => (LP[storeId] && LP[storeId][itemId]) || (D.photos && D.photos[storeId] && D.photos[storeId][itemId]) || null;
-  const shopPhoto = (s) => (LP[s.id] && (LP[s.id][s.signature] || Object.values(LP[s.id])[0])) || null;
+  const hash = (str) => { let h = 0; for (const ch of str) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+  function ownPhoto(storeId, itemId) { return (LP[storeId] && LP[storeId][itemId]) || null; }
+  function standIn(storeId, itemId) {
+    for (const sid in LP) if (LP[sid][itemId]) return { src: LP[sid][itemId], kind: 'same' };
+    const def = C[itemId];
+    if (!def) return null;
+    const cands = [];
+    for (const sid in LP) for (const iid in LP[sid]) {
+      const d = C[iid];
+      if (d && d.kind === def.kind && (def.kind !== 'food' || d.shape === def.shape)) cands.push(LP[sid][iid]);
+    }
+    if (!cands.length && def.kind === 'food') for (const sid in LP) for (const iid in LP[sid]) if (C[iid] && C[iid].kind === 'food') cands.push(LP[sid][iid]);
+    return cands.length ? { src: cands[hash(storeId + itemId) % cands.length], kind: 'similar' } : null;
+  }
+  const photo = (storeId, itemId) => ownPhoto(storeId, itemId) || (standIn(storeId, itemId) || {}).src || null;
+  const shopPhoto = (s) => ownPhoto(s.id, s.signature) || (LP[s.id] && Object.values(LP[s.id])[0]) || photo(s.id, s.signature);
   const clock = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
   function load() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { return {}; } }
@@ -212,6 +229,7 @@
 
     const rect = () => svg.getBoundingClientRect();
     svg.addEventListener('pointerdown', (e) => {
+      map.downPin = e.target.closest ? e.target.closest('.pin') : null;   /* capture retargets the click to the svg */
       svg.setPointerCapture(e.pointerId);
       map.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (map.ptrs.size === 1) { map.moved = false; map.last = { x: e.clientX, y: e.clientY }; }
@@ -256,9 +274,17 @@
     svg.addEventListener('dblclick', (e) => zoomAt(0.6, e.clientX, e.clientY));
     svg.addEventListener('click', (e) => {
       if (map.moved) return;
-      const pin = e.target.closest('.pin');
-      if (pin) selectStore(pin.dataset.id);
-      else if (state.storeId) { state.storeId = null; save(); renderMap(); }
+      const pin = map.downPin || e.target.closest('.pin');
+      map.downPin = null;
+      if (pin) {
+        if (state.storeId === pin.dataset.id) return selectStore(pin.dataset.id);
+        state.storeId = pin.dataset.id;
+        save();
+        renderMap();
+        const st = storeById(pin.dataset.id);
+        centerOn(st.x, st.y, 0.55);
+        $('#sheetBody').scrollTop = 0;
+      } else if (state.storeId) { state.storeId = null; save(); renderMap(); }
     });
   }
 
@@ -350,7 +376,12 @@
     const now = new Date();
     const fav = !state.query && sorted().find((st) => visited(st.id) && isOpenAt(st, now) && usualAt(st.id));
     const u = fav && usualAt(fav.id);
+    const sel = !state.query && storeById(state.storeId);
+    const selE = sel && eta(sel, []);
     $('#sheetBody').innerHTML =
+      (sel ? '<div class="picked">' + tile(sel, true) + '<div class="grow"><div class="t">' + esc(sel.name) + '</div><div class="s">' + esc(sel.tag) + '</div>' +
+        '<div class="s">' + hoursLine(sel) + ' · ' + miles(sel) + (isOpenAt(sel, now) ? ' · ready in ' + etaText(selE) : '') + '</div></div>' +
+        '<button class="btn btn--hot" data-select="' + sel.id + '">Menu</button></div>' : '') +
       (u ? '<div class="usual"><div class="grow"><div class="k">Your usual at ' + esc(fav.name.split(' ').slice(0, 2).join(' ')) + '</div><div class="n">' + esc(lineName(u.line)) + (lineMods(u.line) ? ', ' + esc(lineMods(u.line).toLowerCase()) : '') + '</div>' +
         '<div class="p">' + money(linePrice(u.line)) + ' · Ready in ' + etaText(eta(fav, [u.line])) + '</div></div><button class="btn btn--hot" data-usual="' + fav.id + '">Order</button></div>' : '') +
       '<div class="head">' + (state.query ? list.length + ' result' + (list.length === 1 ? '' : 's') : 'Coffee shops near you') + '</div>' +
@@ -461,7 +492,8 @@
     const def = C[draft.itemId], s = storeById(draft.storeId), img = photo(s.id, draft.itemId);
     const head = (t, note) => '<div class="group-head"><h3>' + t + '</h3><span>' + note + '</span></div>';
     $('#modalBody').innerHTML =
-      (img ? '<img class="hero-img" src="' + esc(img) + '" alt="' + esc(def.name) + '" referrerpolicy="no-referrer" onerror="this.remove()">' : '') +
+      (img ? '<img class="hero-img" src="' + esc(img) + '" alt="' + esc(def.name) + '" referrerpolicy="no-referrer" onerror="this.remove()">' +
+        (ownPhoto(s.id, draft.itemId) ? '' : '<p class="caption">' + (standIn(s.id, draft.itemId).kind === 'same' ? 'Photo of this drink at another shop' : 'Photo of a similar drink') + '</p>') : '') +
       '<div class="item-head"><h2 id="itemTitle">' + esc(def.name) + '</h2><p class="p">' + money(draft.base) + '</p><p class="d">' + esc(def.desc) + ' ' + def.cal + ' calories.</p></div>' +
       (def.sized ? head('Size', 'Pick one') + D.sizes.map((z) => choice(draft.size === z.id, 'data-size="' + z.id + '"', z.name + ' (' + z.oz + ' oz)', z.delta ? '+' + money(z.delta) : '')).join('') : '') +
       (def.milk ? head('Milk', 'Pick one') + D.milks.map((k) => choice(draft.milk === k.id, 'data-milk="' + k.id + '"', k.name, k.delta ? '+' + money(k.delta) : '')).join('') : '') +

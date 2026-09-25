@@ -3,20 +3,20 @@
 window.OTG_LOCAL_PHOTOS = {
  "carmela": {
   "pancake": "img/carmela/pancake.jpg",
-  "shakshuka": "img/carmela/shakshuka.png"
+  "shakshuka": "img/carmela/shakshuka.jpg"
  },
  "lpp": {
   "americano": "img/lpp/americano.webp",
-  "avotoast": "img/lpp/avotoast.webp",
+  "avotoast": "img/lpp/avotoast.jpg",
   "bfsandwich": "img/lpp/bfsandwich.webp",
   "cappuccino": "img/lpp/cappuccino.webp",
-  "cinnamonroll": "img/lpp/cinnamonroll.webp",
+  "cinnamonroll": "img/lpp/cinnamonroll.jpg",
   "espresso": "img/lpp/espresso.webp",
   "hamcroissant": "img/lpp/hamcroissant.webp",
   "latte": "img/lpp/latte.webp",
   "macchiato": "img/lpp/macchiato.webp",
   "mocha": "img/lpp/mocha.webp",
-  "parisian": "img/lpp/parisian.webp",
+  "parisian": "img/lpp/parisian.jpg",
   "quiche": "img/lpp/quiche.webp"
  },
  "seed": {
@@ -26,7 +26,8 @@ window.OTG_LOCAL_PHOTOS = {
   "pestoburrito": "img/seed/pestoburrito.jpg"
  },
  "subculture": {
-  "espresso": "img/subculture/espresso.jpg"
+  "espresso": "img/subculture/espresso.jpg",
+  "macchiato": "img/subculture/macchiato.jpg"
  },
  "third": {
   "americano": "img/third/americano.jpg",
