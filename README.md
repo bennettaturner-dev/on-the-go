@@ -55,6 +55,16 @@ js/app.js       state, map pan/pinch/zoom, shop sheet, menu, order, status
 
 The app uses the phone's system font and loads nothing from other sites. State persists in `localStorage`.
 
+## Item photos
+
+Photos come only from each shop's own online ordering page: Subculture (Toast), the seed.
+(Clover) and Third Place (Per Diem). Delivery apps, Yelp and Instagram were skipped because
+those photos usually belong to the platform or to customers. Long Story Short and Saquella have
+no photos on their own pages. The app links to the images where they are hosted; if one fails
+to load, the item shows without a picture. The Claude preview blocks outside images, so photos
+only appear when the app is served from its own site (for example GitHub Pages). The photos
+belong to the shops, so ask each shop's permission before a public release.
+
 ## About the data
 
 The ten shops are real Boca Raton coffee shops, placed at the coordinates on their Google
