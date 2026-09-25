@@ -57,13 +57,25 @@ The app uses the phone's system font and loads nothing from other sites. State p
 
 ## Item photos
 
-Photos come only from each shop's own online ordering page: Subculture (Toast), the seed.
-(Clover) and Third Place (Per Diem). Delivery apps, Yelp and Instagram were skipped because
-those photos usually belong to the platform or to customers. Long Story Short and Saquella have
-no photos on their own pages. The app links to the images where they are hosted; if one fails
-to load, the item shows without a picture. The Claude preview blocks outside images, so photos
-only appear when the app is served from its own site (for example GitHub Pages). The photos
-belong to the shops, so ask each shop's permission before a public release.
+Photos come only from each shop's own online ordering page:
+
+| Shop | Source | Photos |
+|---|---|---|
+| Carmela Coffee (BRiC) | Toast | 30 items |
+| LPP Bakery Café | Square Online | 32 items |
+| Third Place Coffee Lounge | Per Diem | 24 items |
+| the seed. (Palmetto) | Clover | 16 items |
+| Subculture Coffee (Mizner) | Toast | 10 items |
+| Long Story Short, Saquella, Mane, The Pots, Cafe Louis | none on their own pages | none |
+
+Delivery apps, Yelp and Instagram were skipped because those photos usually belong to the
+platform or to customers. The app links to the images where they are hosted; if one fails to
+load, the item shows without a picture. The Claude preview blocks outside images, so photos only
+appear when the app is served from its own site (for example GitHub Pages). The photos belong
+to the shops, so ask each shop's permission before a public release.
+
+Menus for Mane Coffee and The Pots come from third-party listings, and Cafe Louis's website
+was down, so those three menus and their prices are the least reliable.
 
 ## About the data
 
