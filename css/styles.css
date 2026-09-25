@@ -124,10 +124,10 @@ a { color: var(--link); }
 .row .end { margin-left: auto; font-size: 15px; color: var(--ink-2); text-align: right; flex: none; font-variant-numeric: tabular-nums; }
 .row .go { width: 20px; height: 20px; color: var(--ink-3); flex: none; }
 /* section mark: small caps label with a short accent dash beneath, not a full-width rule */
-.head { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; padding: 24px 20px 6px; color: var(--ink-2); position: relative; }
+.head { font-family: var(--font-display); font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; padding: 24px 20px 6px; color: var(--ink); position: relative; }
 .head::after { content: ""; display: block; width: 28px; height: 3px; margin-top: 6px; background: var(--accent); border-radius: 2px; }
 .sheet .head, [data-screen="menu"] .head { margin-left: 20px; margin-right: 20px; padding-left: 0; padding-right: 0; }
-.head small { font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-3); margin-left: 8px; font-size: 13px; }
+.head small { font-family: var(--font); font-weight: 600; letter-spacing: 0; color: var(--ink-3); margin-left: 8px; font-size: 13px; }
 .open { color: var(--ok); font-weight: 700; }
 .closed { color: var(--closed); font-weight: 700; }
 .pick { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 6px; background: var(--sun); color: var(--on-sun); font-size: 13px; font-weight: 700; }

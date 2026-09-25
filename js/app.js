@@ -402,7 +402,7 @@
         '<div class="s">' + esc(st.tag) + '</div><div class="s">' + hoursLine(st) + ' · ' + miles(st) + '</div>' +
         (visited(st.id) && usualAt(st.id) ? '<span class="been">Been here · usually ' + esc(C[usualAt(st.id).line.itemId].name) + '</span>' : '') +
         (isFeatureDay(st) ? '<span class="pick">Today: ' + esc(C[st.signature].name) + '</span>' : '') + '</div>' +
-        '<span class="go">' + I.go + '</span></button>').join('')
+        '</button>').join('')
         : '<p class="note">No shops match “' + esc(state.query) + '”. Try a shop name or a drink like “latte”.</p>');
   }
 
