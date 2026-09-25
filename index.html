@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>On the Go</title>
+<meta name="description" content="Order coffee ahead for pickup at coffee shops near you.">
+<meta name="theme-color" content="#2C1E1A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Nunito+Sans:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<!--OTG-START-->
+<div class="stage">
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" id="brandMark" aria-hidden="true"></div>
+      <div><div class="brand-name">On the Go</div><div class="brand-sub">Order ahead · Pick up</div></div>
+    </div>
+    <div class="stars-chip" title="Bean bank"><span class="star" id="beanIcon"></span><span id="beansCount">0</span></div>
+  </header>
+
+  <main class="screens">
+    <section class="screen is-active" data-screen="home" aria-label="Home"></section>
+
+    <section class="screen screen--map" data-screen="stores" aria-label="Stores near you">
+      <div class="map-wrap">
+        <svg class="map-svg" id="mapSvg" viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of nearby coffee stores"></svg>
+        <div class="map-top">
+          <label class="search"><span id="searchIcon" aria-hidden="true"></span><input id="storeSearch" type="search" placeholder="Search stores or streets" autocomplete="off" aria-label="Search stores"></label>
+        </div>
+        <div class="map-filters" role="group" aria-label="Filter stores">
+          <button class="chip is-on" data-filter="all">All</button>
+          <button class="chip" data-filter="fav">Favorites</button>
+          <button class="chip" data-filter="curbside">Curbside</button>
+          <button class="chip" data-filter="quiet">Quiet now</button>
+        </div>
+        <div class="map-ctrls" style="top:112px">
+          <button class="icon-btn" data-zoom="in" aria-label="Zoom in"></button>
+          <button class="icon-btn" data-zoom="out" aria-label="Zoom out"></button>
+          <button class="icon-btn" data-locate aria-label="Center on me"></button>
+        </div>
+        <div class="sheet" id="storeSheet">
+          <div class="sheet-grip" aria-hidden="true"></div>
+          <div class="sheet-head" id="sheetHead"></div>
+          <div class="sheet-body" id="sheetBody"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="menu" aria-label="Menu"></section>
+    <section class="screen" data-screen="bag" aria-label="Bag"></section>
+    <section class="screen" data-screen="orders" aria-label="Orders"></section>
+  </main>
+
+  <nav class="tabbar" aria-label="Main">
+    <button class="tab is-active" data-go="home" data-icon="home">Home</button>
+    <button class="tab" data-go="stores" data-icon="map">Stores</button>
+    <button class="tab" data-go="menu" data-icon="menu">Order</button>
+    <button class="tab" data-go="bag" data-icon="bag">Bag</button>
+    <button class="tab" data-go="orders" data-icon="orders">Orders</button>
+  </nav>
+
+  <div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-label="Customize item">
+    <div class="modal-scrim"></div>
+    <div class="modal-panel">
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div class="row" style="padding:0 20px"><div class="grow"></div><button class="icon-btn" id="modalClose" data-close aria-label="Close" style="box-shadow:none;background:var(--surface-2)"></button></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot"><div><div class="eyebrow">Total</div><div class="price" id="modalTotal" style="font-size:18px">$0.00</div></div><button class="btn" data-add>Add to bag</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+</div>
+<!--OTG-END-->
+<script src="js/mapdata.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
