@@ -329,4 +329,4 @@ a { color: var(--link); }
 .pin.is-selected .pin-name { font-size: 14px; fill: var(--ink); }
 .pin.is-selected .tee { stroke-width: 1.6; }
 .caption { font-size: 13px; color: var(--ink-3); padding: 6px 20px 0; }
-.row.is-picked { background: var(--surface); box-shadow: inset 4px 0 0 var(--accent); }
+.row.is-picked { background: var(--surface); }
