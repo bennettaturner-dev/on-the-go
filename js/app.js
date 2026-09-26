@@ -403,16 +403,16 @@
           '<text class="k" x="8" y="14">TODAY ONLY</text><text x="8" y="29">' + esc(name) + '</text></g>';
       }
       const img = shopPhoto(s), been = visited(s.id);
-      /* a golf tee drawn as one smooth outline: tapered shaft to the exact spot, curved flare into the cup, ball (photo or logo) resting in it */
-      const ball = img
-        ? '<clipPath id="ball-' + s.id + '"><circle cy="-40" r="15"/></clipPath><circle cy="-40" r="16.5" fill="' + s.brand.bg + '"/><image href="' + esc(img) + '" x="-15" y="-55" width="30" height="30" preserveAspectRatio="xMidYMid slice" clip-path="url(#ball-' + s.id + ')"/><circle class="ball" cy="-40" r="16" fill="none"/>'
-        : '<circle class="ball" cy="-40" r="16" fill="' + s.brand.bg + '"/><text class="pin-mono" y="' + (s.brand.mono.length > 2 ? -36 : -35) + '" text-anchor="middle" fill="' + s.brand.fg + '" font-size="' + (s.brand.mono.length > 2 ? 10 : 13) + '">' + esc(s.brand.mono) + '</text>';
+      /* a map pin: round head tapering to a point at the exact spot, the shop's photo (or initials) in the head */
+      const face = img
+        ? '<clipPath id="face-' + s.id + '"><circle cy="-28" r="11"/></clipPath><circle cy="-28" r="11" fill="' + s.brand.bg + '"/><image href="' + esc(img) + '" x="-11" y="-39" width="22" height="22" preserveAspectRatio="xMidYMid slice" clip-path="url(#face-' + s.id + ')"/>'
+        : '<circle cy="-28" r="11" fill="' + s.brand.bg + '"/><text class="pin-mono" y="' + (s.brand.mono.length > 2 ? -24.5 : -23.5) + '" text-anchor="middle" fill="' + s.brand.fg + '" font-size="' + (s.brand.mono.length > 2 ? 8 : 10.5) + '">' + esc(s.brand.mono) + '</text>';
       return '<g class="pin' + (s.id === state.storeId ? ' is-selected' : '') + '" data-id="' + s.id + '" data-x="' + s.x + '" data-y="' + s.y + '">' +
-        deal.replace('-62)', '-104)') +
-        '<ellipse class="tee-shadow" cy="1.5" rx="6" ry="2.2"/>' +
-        '<path class="tee" d="M-0.9 -1.6 Q0 0.8 0.9 -1.6 L2.1 -16 C2.5 -20.5 9.6 -22 9.6 -25.8 Q9.6 -28 7.6 -28 L-7.6 -28 Q-9.6 -28 -9.6 -25.8 C-9.6 -22 -2.5 -20.5 -2.1 -16 Z"/>' +
-        ball +
-        (been ? '<g class="been-badge" transform="translate(12.5 -29)"><circle r="7"/><path d="M-3 0l2 2 4-4"/></g>' : '') +
+        deal.replace('-62)', '-90)') +
+        '<ellipse class="pin-shadow" cy="0.5" rx="5" ry="1.8"/>' +
+        '<path class="pin-body" d="M0 0 C-3.5 -7 -14 -15 -14 -28 A14 14 0 1 1 14 -28 C14 -15 3.5 -7 0 0 Z"/>' +
+        face +
+        (been ? '<g class="been-badge" transform="translate(11 -39)"><circle r="6.5"/><path d="M-3 0l2 2 4-4"/></g>' : '') +
         '<text class="pin-name" y="15" text-anchor="middle">' + esc(s.name) + '</text></g>';
     }).join('');
     /* drink-of-the-day pins draw on top */

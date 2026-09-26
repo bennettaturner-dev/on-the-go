@@ -18,9 +18,9 @@ python3 -m http.server 8080
 1. The app has three tabs: **Promotions**, **Order** (the map, in the middle, where the app
    opens) and **Orders** (status and past orders). Order shows Boca Raton coffee shops with a
    search bar on top.
-2. Tap a shop in the list, or search by shop name, street or drink. Tapping a tee on the map
+2. Tap a shop in the list, or search by shop name, street or drink. Tapping a pin on the map
    highlights it and scrolls the list to that shop, with its hours and ready time; tap the row
-   or the tee again to open the menu.
+   or the pin again to open the menu.
 3. That shop's menu opens in place of the map. The top shows how long an order will take, how
    busy it usually is right now, today's hours, distance, address and directions.
 4. Pick a drink, choose size, milk and extras, and add it. **Back to map** returns to the map.
@@ -47,7 +47,7 @@ and `tag` in `js/data.js`). The colors are this app's picks, not the shops' offi
 **Three looks**, switchable at the bottom of the Orders tab: Florida Room (buttermilk, pine
 green, hibiscus coral), Boca Stucco (neutral light gray for now, cocoa, palm green) and Gotham (charcoal
 and slate with crimson). Each colors the whole screen: ground, cards, section headers, top bar
-and tab bar. One accent per look is reserved for the next action. Pins are golf tees with the
+and tab bar. One accent per look is reserved for the next action. Pins are round-headed map pins with the
 shop's photo in the ball. Text is 16px or larger and tap targets are 48px or taller.
 
 **Less to choose from.** A shop's menu opens with your usual order there (one tap to add), the

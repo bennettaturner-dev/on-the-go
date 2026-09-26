@@ -160,11 +160,10 @@ a { color: var(--link); }
 .map-street { fill: var(--map-label); font-size: calc(10.5px * var(--k)); paint-order: stroke; stroke: var(--map-road); stroke-width: calc(2.5px * var(--k)); }
 .map-street--area { fill: #4F7A45; stroke: none; font-weight: 700; }
 .pin { cursor: pointer; }
-.tee { fill: var(--tee); stroke: var(--tee-edge); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
-.tee-shadow { fill: rgba(0,0,0,.28); }
-.ball { stroke: var(--tee); stroke-width: 2.5; filter: drop-shadow(0 1.5px 1.5px rgba(0,0,0,.35)); }
+.pin-body { fill: var(--tee); stroke: rgba(0,0,0,.25); stroke-width: 1; filter: drop-shadow(0 1.5px 2px rgba(0,0,0,.35)); }
+.pin-shadow { fill: rgba(0,0,0,.3); }
 .pin-mono { font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; }
-.pin.is-selected .ball { stroke: var(--hot); stroke-width: 4; }
+.pin.is-selected .pin-body { fill: var(--hot); stroke: var(--hot-edge); }
 .pin-name { font-family: var(--font-display); font-size: 12.5px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--map-halo); stroke-width: 3.5px; stroke-linejoin: round; }
 .pin-deal rect { fill: var(--sun); stroke: var(--on-sun); stroke-width: 1.5; }
 .pin-deal text { fill: var(--on-sun); font-size: 12px; font-weight: 700; }
@@ -327,6 +326,5 @@ a { color: var(--link); }
 
 /* shop picked on the map */
 .pin.is-selected .pin-name { font-size: 14px; fill: var(--ink); }
-.pin.is-selected .tee { stroke-width: 1.6; }
 .caption { font-size: 13px; color: var(--ink-3); padding: 6px 20px 0; }
 .row.is-picked { background: var(--surface); }
