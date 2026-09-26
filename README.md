@@ -48,7 +48,7 @@ and `tag` in `js/data.js`). The colors are this app's picks, not the shops' offi
 green, hibiscus coral), Boca Stucco (neutral light gray for now, cocoa, palm green) and Gotham (charcoal
 and slate with crimson). Each colors the whole screen: ground, cards, section headers, top bar
 and tab bar. One accent per look is reserved for the next action. Pins are round-headed map pins with the
-shop's photo in the ball. Text is 16px or larger and tap targets are 48px or taller.
+shop's photo in the head. Text is 16px or larger and tap targets are 48px or taller.
 
 **Less to choose from.** A shop's menu opens with your usual order there (one tap to add), the
 drink of the day, three recommended items, anything seasonal, and only then the full menu.
