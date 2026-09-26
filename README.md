@@ -52,7 +52,7 @@ shop's photo in the ball. Text is 16px or larger and tap targets are 48px or tal
 
 **Less to choose from.** A shop's menu opens with your usual order there (one tap to add), the
 drink of the day, three recommended items, anything seasonal, and only then the full menu.
-Shops you've ordered from get a check and a dashed ring on the map, and the map shows a one-tap
+Shops you've ordered from get a check on their map pin, and the map shows a one-tap
 "Your usual" bar for the nearest open shop you've been to. Until your first real order, the app
 shows a few sample past orders, labeled Sample, so these features have something to work with.
 
@@ -69,7 +69,7 @@ js/data.js      shops, each shop's menu and prices, sizes, milks, syrups
 js/app.js       state, map pan/pinch/zoom, shop sheet, menu, order, status
 ```
 
-The app uses the phone's system font and loads nothing from other sites. State persists in `localStorage`.
+The map shows Esri World Imagery satellite tiles (the only thing loaded from another site besides fonts). State persists in `localStorage`.
 
 ## Item photos
 
@@ -103,5 +103,5 @@ estimates otherwise. Wait times, ratings and "busy" levels are sample values, no
 Orders are not sent to the shops. The base map is hand-traced from real
 geography (I-95, Federal Hwy, Dixie Hwy, Palmetto Park Rd, Glades Rd, Camino Real, Spanish
 River Blvd, Yamato Rd, A1A, the Intracoastal, Lake Boca Raton, the beach parks, FAU, the
-airport and Town Center) and drawn as SVG, so it works offline with no tile provider. To go
-fully live, swap the SVG for a tile layer and feed `OTG_DATA.stores` from a places API.
+airport and Town Center) and drawn as SVG. It sits under the satellite tiles and shows when they can't load (offline). To go
+fully live, feed `OTG_DATA.stores` from a places API.

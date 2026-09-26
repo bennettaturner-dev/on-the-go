@@ -217,6 +217,7 @@
       '<path class="runway" d="' + line(M.runway) + '" stroke-width="14"/>' +
       M.roads.filter((r) => r.cls !== 'minor').map((r) => '<path class="road-casing" d="' + line(r.pts) + '" stroke-width="' + (W[r.cls] + 3) + '"/>').join('') +
       M.roads.map((r, i) => '<path id="rd' + i + '" class="road road--' + r.cls + '" d="' + line(r.pts) + '" stroke-width="' + W[r.cls] + '"/>').join('') +
+      '<g id="sat"><g id="satBase"></g><g id="satDetail"></g></g>' +
       M.roads.map((r, i) => '<text class="map-street" dy="3.5"><textPath href="#rd' + i + '" startOffset="' + (r.cls === 'minor' ? '30%' : '18%') + '">' + esc(r.name) + '</textPath></text>').join('') +
       M.areas.filter((a) => a.cls === 'park').map((a) => { const c = centroid(a.pts); return '<text class="map-street map-street--area" x="' + c.x + '" y="' + c.y + '" text-anchor="middle">' + esc(a.name) + '</text>'; }).join('') +
       M.labels.map((l) => { const q = project(l.lon, l.lat); return '<text class="map-label map-label--' + l.cls + '" x="' + q.x + '" y="' + q.y + '" text-anchor="middle"' + (l.rotate ? ' transform="rotate(' + l.rotate + ' ' + q.x + ' ' + q.y + ')"' : '') + '>' + esc(l.name) + '</text>'; }).join('') +
@@ -302,6 +303,48 @@
     map.svg.classList.toggle('is-mid', map.vb.w > 900);
     $$('.pin', map.svg).forEach((p) => p.setAttribute('transform', 'translate(' + p.dataset.x + ' ' + p.dataset.y + ') scale(' + k * (p.classList.contains('is-selected') ? 1.2 : 1) + ')'));
     $('#me').setAttribute('transform', 'translate(' + D.me.x + ' ' + D.me.y + ') scale(' + k + ')');
+    if (!map.satQueued) { map.satQueued = true; requestAnimationFrame(renderSat); }
+  }
+
+  /* Satellite imagery (Esri World Imagery tiles) laid over the drawn map, which stays underneath
+     as the offline fallback. A coarse layer covers the whole area; a sharper one fills the view. */
+  const SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/';
+  const tileX = (lng, z) => Math.floor((lng + 180) / 360 * 2 ** z);
+  const tileY = (lat, z) => { const r = lat * Math.PI / 180; return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z); };
+  const tileLng = (x, z) => x / 2 ** z * 360 - 180;
+  const tileLat = (y, z) => { const n = Math.PI - 2 * Math.PI * y / 2 ** z; return 180 / Math.PI * Math.atan(Math.sinh(n)); };
+  function satTiles(g, z, west, east, north, south) {
+    const want = new Set();
+    for (let x = tileX(west, z); x <= tileX(east, z); x++) {
+      for (let y = tileY(north, z); y <= tileY(south, z); y++) {
+        const key = z + '/' + y + '/' + x;
+        want.add(key);
+        if (g.querySelector('[data-t="' + key + '"]')) continue;
+        const a = project(tileLng(x, z), tileLat(y, z)), b = project(tileLng(x + 1, z), tileLat(y + 1, z));
+        const im = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        im.setAttribute('data-t', key);
+        im.setAttribute('href', SAT + key);
+        im.setAttribute('x', a.x); im.setAttribute('y', a.y);
+        im.setAttribute('width', b.x - a.x + 0.5); im.setAttribute('height', b.y - a.y + 0.5);
+        im.setAttribute('preserveAspectRatio', 'none');
+        im.addEventListener('load', () => map.svg.classList.add('has-sat'), { once: true });
+        im.addEventListener('error', () => im.remove(), { once: true });
+        g.appendChild(im);
+      }
+    }
+    [...g.children].forEach((im) => { if (!want.has(im.dataset.t)) im.remove(); });
+  }
+  function renderSat() {
+    map.satQueued = false;
+    const r = map.svg.getBoundingClientRect();
+    if (!r.width) return;
+    const b = M.bounds, v = map.vb;
+    if (!map.satBase) { map.satBase = true; satTiles($('#satBase'), 13, b.west - 0.05, b.east + 0.05, b.north + 0.05, b.south - 0.05); }
+    const pxPerUnit = r.width * Math.min(2, window.devicePixelRatio || 1) / v.w;
+    const z = Math.max(14, Math.min(19, Math.ceil(Math.log2(KX * 360 * pxPerUnit / 256))));
+    const west = M.bounds.west + v.x / KX, east = M.bounds.west + (v.x + v.w) / KX;
+    const north = M.bounds.north - v.y / KY, south = M.bounds.north - (v.y + v.h) / KY;
+    satTiles($('#satDetail'), z, west, east, north, south);
   }
 
   /* opening view: the shops within a short walk, zoomed in enough that their tees stand apart,
@@ -360,16 +403,14 @@
           '<text class="k" x="8" y="14">TODAY ONLY</text><text x="8" y="29">' + esc(name) + '</text></g>';
       }
       const img = shopPhoto(s), been = visited(s.id);
-      /* a golf tee: tapered shaft to the exact spot, flared cup on top, ball (photo or logo) resting in the cup */
+      /* a golf tee drawn as one smooth outline: tapered shaft to the exact spot, curved flare into the cup, ball (photo or logo) resting in it */
       const ball = img
         ? '<clipPath id="ball-' + s.id + '"><circle cy="-40" r="15"/></clipPath><circle cy="-40" r="16.5" fill="' + s.brand.bg + '"/><image href="' + esc(img) + '" x="-15" y="-55" width="30" height="30" preserveAspectRatio="xMidYMid slice" clip-path="url(#ball-' + s.id + ')"/><circle class="ball" cy="-40" r="16" fill="none"/>'
         : '<circle class="ball" cy="-40" r="16" fill="' + s.brand.bg + '"/><text class="pin-mono" y="' + (s.brand.mono.length > 2 ? -36 : -35) + '" text-anchor="middle" fill="' + s.brand.fg + '" font-size="' + (s.brand.mono.length > 2 ? 10 : 13) + '">' + esc(s.brand.mono) + '</text>';
       return '<g class="pin' + (s.id === state.storeId ? ' is-selected' : '') + '" data-id="' + s.id + '" data-x="' + s.x + '" data-y="' + s.y + '">' +
         deal.replace('-62)', '-104)') +
         '<ellipse class="tee-shadow" cy="1.5" rx="6" ry="2.2"/>' +
-        '<path class="tee" d="M0 0 L-2.6 -19 L2.6 -19 Z"/>' +
-        '<path class="tee" d="M-2.8 -19 C-3.5 -22.5 -8.5 -23 -9.5 -26.5 Q-10 -29 -7.5 -29 L7.5 -29 Q10 -29 9.5 -26.5 C8.5 -23 3.5 -22.5 2.8 -19 Z"/>' +
-        (been ? '<circle class="ball-ring" cy="-40" r="21.5"/>' : '') +
+        '<path class="tee" d="M-0.9 -1.6 Q0 0.8 0.9 -1.6 L2.1 -16 C2.5 -20.5 9.6 -22 9.6 -25.8 Q9.6 -28 7.6 -28 L-7.6 -28 Q-9.6 -28 -9.6 -25.8 C-9.6 -22 -2.5 -20.5 -2.1 -16 Z"/>' +
         ball +
         (been ? '<g class="been-badge" transform="translate(12.5 -29)"><circle r="7"/><path d="M-3 0l2 2 4-4"/></g>' : '') +
         '<text class="pin-name" y="15" text-anchor="middle">' + esc(s.name) + '</text></g>';
